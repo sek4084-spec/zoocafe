@@ -1,8 +1,13 @@
 {
-  "name":"zoocafe-online",
-  "version":"11.0.0",
-  "private":true,
-  "description":"ZOO:CAFE online login foundation",
-  "scripts":{"start":"node server.js"},
-  "dependencies":{"express":"4.21.2"}
+  "name": "zoocafe-online",
+  "version": "12.0.0",
+  "private": true,
+  "description": "ZOO:CAFE real-time multiplayer prototype",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "4.21.2",
+    "ws": "8.18.3"
+  }
 }

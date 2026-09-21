@@ -4,6 +4,7 @@ const fs = require('fs');
 const crypto = require('crypto');
 
 const app = express();
+const { WebSocketServer } = require('ws');
 const PORT = process.env.PORT || 3000;
 const DATA_DIR = path.join(__dirname, 'data');
 const USERS_FILE = path.join(DATA_DIR, 'users.json');
@@ -12,6 +13,7 @@ if (!fs.existsSync(USERS_FILE)) fs.writeFileSync(USERS_FILE, '[]');
 
 app.use(express.json({limit:'32kb'}));
 app.use(express.static(__dirname, {extensions:['html']}));
+app.get('/api/health',(req,res)=>res.json({ok:true,service:'zoocafe-online'}));
 
 const sessions = new Map();
 const clean = s => String(s || '').trim();
@@ -56,4 +58,34 @@ app.get('/api/me',auth,(req,res)=>res.json({user:safeUser(req.user)}));
 app.post('/api/logout',auth,(req,res)=>{sessions.delete(req.token);res.json({ok:true});});
 
 app.get('*',(req,res)=>res.sendFile(path.join(__dirname,'index.html')));
-app.listen(PORT,()=>console.log(`ZOO:CAFE Online: http://localhost:${PORT}`));
+const server=app.listen(PORT, '0.0.0.0', ()=>console.log(`ZOO:CAFE Online Multiplayer running on port ${PORT}`));
+const wss=new WebSocketServer({server});
+const clients=new Map();
+const validModes=new Set(['world','cafe']);
+const wsSend=(ws,obj)=>{if(ws.readyState===1)ws.send(JSON.stringify(obj));};
+function roomPlayers(mode){return [...clients.values()].filter(c=>c.authed&&c.mode===mode).map(c=>({id:c.user.id,nickname:c.user.nickname,x:c.x,y:c.y,dir:c.dir,frame:c.frame,moving:c.moving,mode:c.mode}));}
+function broadcastRoom(mode,obj,except=null){const raw=JSON.stringify(obj);for(const [ws,c] of clients)if(ws!==except&&c.authed&&c.mode===mode&&ws.readyState===1)ws.send(raw);}
+function syncRoom(mode){const packet={type:'roster',mode,players:roomPlayers(mode)};for(const [ws,c] of clients)if(c.authed&&c.mode===mode)wsSend(ws,packet);}
+wss.on('connection',ws=>{
+  const c={authed:false,user:null,mode:'world',x:960,y:510,dir:'down',frame:2,moving:false}; clients.set(ws,c);
+  ws.on('message',buf=>{let m;try{m=JSON.parse(String(buf))}catch{return}
+    if(!c.authed){
+      if(m.type!=='auth'||typeof m.token!=='string')return ws.close(1008,'auth required');
+      const userId=sessions.get(m.token), user=loadUsers().find(u=>u.id===userId); if(!user)return ws.close(1008,'invalid session');
+      c.authed=true;c.user=safeUser(user);wsSend(ws,{type:'ready',user:c.user});syncRoom(c.mode);return;
+    }
+    if(m.type==='state'){
+      const old=c.mode, next=validModes.has(m.mode)?m.mode:c.mode;c.mode=next;
+      const maxX=next==='world'?1920:960,maxY=next==='world'?1120:540;
+      c.x=Math.max(0,Math.min(maxX,Number(m.x)||0));c.y=Math.max(0,Math.min(maxY,Number(m.y)||0));
+      c.dir=['up','down','left','right'].includes(m.dir)?m.dir:'down';c.frame=[1,2,3].includes(m.frame)?m.frame:2;c.moving=!!m.moving;
+      if(old!==next){syncRoom(old);syncRoom(next)}
+      else broadcastRoom(c.mode,{type:'state',player:{id:c.user.id,nickname:c.user.nickname,x:c.x,y:c.y,dir:c.dir,frame:c.frame,moving:c.moving,mode:c.mode}},ws);
+    } else if(m.type==='chat'){
+      const text=clean(m.text).slice(0,120);if(!text)return;
+      broadcastRoom(c.mode,{type:'chat',id:c.user.id,nickname:c.user.nickname,text,at:Date.now()});
+    }
+  });
+  ws.on('close',()=>{const old=c.mode;clients.delete(ws);if(c.authed)syncRoom(old)});
+  ws.on('error',()=>{});
+});

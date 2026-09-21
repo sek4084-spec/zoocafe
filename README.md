@@ -1,22 +1,23 @@
-# ZOO:CAFE Online v11
+# ZOO:CAFE Online v13 — 인터넷 배포 준비 버전
 
-## 실행
+## 로컬 실행
 1. Node.js 18 이상 설치
-2. 이 폴더에서 터미널 열기
-3. `npm install`
-4. `npm start`
-5. 브라우저에서 `http://localhost:3000`
+2. 이 폴더에서 `npm install`
+3. `npm start`
+4. 브라우저에서 `http://localhost:3000`
 
-회원가입 정보는 서버의 `data/users.json`에 저장됩니다. 비밀번호 원문은 저장하지 않고 Node.js scrypt 해시와 salt만 저장합니다.
+## Render에 공개하기
+이 프로젝트는 Render Web Service에서 실행되도록 PORT 환경변수와 0.0.0.0 바인딩, `/api/health` 상태 확인 주소, `render.yaml`을 포함합니다.
 
-## 현재 구현
-- 아이디 + 비밀번호 + 닉네임 회원가입
-- 로그인 / 로그아웃
-- 로그인 세션 동안 게임 입장
-- 로그인한 닉네임을 게임 UI와 채팅 이름에 반영
-- 기존 도시/카페 BGM, 게임, 메뉴 유지
+1. 이 폴더 전체를 GitHub 저장소에 업로드합니다.
+2. Render에서 New > Web Service를 선택하고 GitHub 저장소를 연결합니다.
+3. Build Command: `npm install`
+4. Start Command: `npm start`
+5. Free 인스턴스로 먼저 테스트할 수 있습니다.
+6. 배포 완료 후 `https://...onrender.com` 주소를 친구에게 보내면 접속할 수 있습니다.
 
-## 다음 단계
-v12에서 Socket.IO 등을 연결해 같은 맵의 실제 접속자 위치와 실시간 채팅을 동기화할 수 있습니다.
+## 매우 중요한 계정 데이터 주의
+현재 회원 계정은 `data/users.json`에 저장됩니다. Render 무료 Web Service의 로컬 파일 시스템은 영구 저장소가 아니므로 재시작/재배포/슬립 이후 가입 계정이 사라질 수 있습니다. 멀티플레이 기능 테스트에는 사용할 수 있지만, 실제 운영 전에는 PostgreSQL 같은 영구 DB로 계정 저장소를 옮겨야 합니다.
 
-주의: 현재 세션은 서버 메모리에 있으므로 서버를 재시작하면 다시 로그인해야 합니다. 공개 서비스 전에는 HTTPS, 영구 세션 저장소, rate limit, 계정 복구/관리 기능을 추가하는 것이 좋습니다.
+## 무료 Render 테스트 시
+무료 Web Service는 일정 시간 요청이 없으면 잠들 수 있으며, 다음 접속 때 다시 시작되는 데 시간이 걸릴 수 있습니다. WebSocket은 지원하지만 무료 인스턴스의 운영 제한이 있습니다.
