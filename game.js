@@ -29,7 +29,7 @@ let player={x:1430,y:980,dir:'down',frame:2,t:0,moving:false}, cafePlayer={x:480
 let camera={x:player.x-W/2,y:player.y-H/2};
 const cafe={x:1260,y:430,w:340,h:235,door:{x:1412,y:615,w:36,h:50}};
 const worldSolids=[{x:1260,y:430,w:340,h:185}];
-const cafeSolids=[{x:0,y:0,w:960,h:305},{x:55,y:340,w:185,h:110},{x:615,y:340,w:195,h:115},{x:0,y:430,w:115,h:110},{x:835,y:420,w:125,h:120}];
+const cafeSolids=[{x:0,y:0,w:960,h:218},{x:340,y:218,w:380,h:52},{x:145,y:292,w:118,h:86},{x:775,y:300,w:112,h:88},{x:900,y:205,w:60,h:95}];
 const C={ink:'#4b3429',ink2:'#654637',grass:'#86c968',grass2:'#70b65a',grass3:'#a5dc79',path:'#dfbd80',path2:'#cfa66a',wood:'#a66f4c',wood2:'#8a583d',cream:'#f2ddb0',wall:'#efd9ad',green:'#5f8550',leaf:'#4f8a46',leaf2:'#78ad50',leaf3:'#a3ce65'};
 function clamp(v,a,b){return Math.max(a,Math.min(b,v))}function hit(a,b){return a.x<b.x+b.w&&a.x+a.w>b.x&&a.y<b.y+b.h&&a.y+a.h>b.y}
 function R(x,y,w,h,fill,stroke=null,lw=1){ctx.fillStyle=fill;ctx.fillRect(Math.round(x),Math.round(y),Math.round(w),Math.round(h));if(stroke){ctx.strokeStyle=stroke;ctx.lineWidth=lw;ctx.strokeRect(Math.round(x)+.5,Math.round(y)+.5,Math.round(w)-1,Math.round(h)-1)}}
@@ -605,12 +605,12 @@ window.ZooCafeGame.getState=function(){const p=mode==='world'?player:cafePlayer;
 (function setupMobileViewV24(){
   const coarse=window.matchMedia?.('(hover:none) and (pointer:coarse)').matches;
   if(!coarse)return;
-  const MOBILE_WORLD_SCALE=.78;
+  const MOBILE_WORLD_SCALE=.66; // v34: wider phone view
   const oldUpdateCamera=updateCamera;
   updateCamera=function(dt){
     const vw=W/MOBILE_WORLD_SCALE,vh=H/MOBILE_WORLD_SCALE;
-    camera.x=player.x-vw/2;
-    camera.y=player.y-vh/2;
+    camera.x=clamp(player.x-vw/2,0,Math.max(0,WORLD_W-vw));
+    camera.y=clamp(player.y-vh/2,0,Math.max(0,WORLD_H-vh));
   };
   const oldDraw=draw;
   draw=function(){
@@ -636,10 +636,10 @@ window.ZooCafeGame.getState=function(){const p=mode==='world'?player:cafePlayer;
 /* v28 — contextual indoor interaction + approved classic lion barista */
 let cafeStyle='cozy';
 let cafeNpcMenuOpen=false;
-const CAFE_NPC={x:492,y:224};
+const CAFE_NPC={x:640,y:188};
 const CAFE_EXIT={x:480,y:505};
 
-function nearCafeNpc(){return mode==='cafe'&&Math.hypot(cafePlayer.x-CAFE_NPC.x,cafePlayer.y-CAFE_NPC.y)<145}
+function nearCafeNpc(){return mode==='cafe'&&Math.hypot(cafePlayer.x-CAFE_NPC.x,cafePlayer.y-CAFE_NPC.y)<105}
 function nearIndoorExit(){return mode!=='world'&&Math.hypot(cafePlayer.x-CAFE_EXIT.x,cafePlayer.y-CAFE_EXIT.y)<88}
 
 // v29 — external PNG café NPC asset.
@@ -651,7 +651,31 @@ let cafeOwnerImageReady=false;
 cafeOwnerImage.onload=()=>{cafeOwnerImageReady=true;};
 cafeOwnerImage.onerror=()=>{console.warn('[ZOO:CAFE] NPC PNG not found: images/npc/cafe-staff-lion.png');};
 
-drawBaristaNPC=function(){}; // v33: lion barista is painted into the unified café background; motion is ambient overlay.
+drawBaristaNPC=function(){
+  const x=CAFE_NPC.x,y=CAFE_NPC.y;
+  const t=waterT;
+  // Keep the keeper close to native pixel density; only tiny motion is added.
+  const breathe=Math.sin(t*1.8)*0.010;
+  const bob=Math.sin(t*1.35)*0.7;
+  const sway=Math.sin(t*.75)*0.012;
+  const drawW=55,drawH=76;
+  shadow(x,y+35,21,6,.13);
+  if(cafeOwnerImageReady){
+    ctx.save();
+    ctx.translate(Math.round(x),Math.round(y+bob));
+    ctx.rotate(sway);
+    ctx.scale(1-breathe*.30,1+breathe);
+    ctx.drawImage(cafeOwnerImage,-drawW/2,-drawH/2-4,drawW,drawH);
+    // A short blink every few seconds. This sits on the face and is intentionally subtle.
+    if((t%5.7)>5.48){
+      ctx.fillStyle='#5b3b2d';
+      ctx.fillRect(-9,-10,4,2);ctx.fillRect(5,-10,4,2);
+    }
+    ctx.restore();
+  }else{
+    RR(x-20,y-22,40,44,8,'#f4d37d','#4b3429',3);T('NPC',x,y,10,'#4b3429','center',900);
+  }
+};
 
 function drawCafeStyleExtras(){
   if(cafeStyle==='garden'){
@@ -677,85 +701,62 @@ drawCafe=function(){drawCafeV26();drawCafeStyleExtras();};
 function drawCafeAmbient(){
   const t=waterT;
   ctx.save();
-
-  // 1) Pendant lights — independent warm flicker, never harsh on/off.
-  const lamps=[[96,58,44,0],[231,100,32,.8],[310,100,32,1.7],[645,100,34,2.4],[720,58,46,3.1],[856,157,28,4.2],[326,516,34,1.2],[584,516,34,2.7],[919,476,38,3.7]];
+  // Warm pendant lamps: soft flicker, each lamp slightly out of phase.
+  const lamps=[[215,48,48,0],[346,62,44,1.7],[817,44,48,3.2]];
   for(const [x,y,r,ph] of lamps){
-    const slow=.5+.5*Math.sin(t*2.0+ph), fast=.5+.5*Math.sin(t*6.2+ph*1.9);
-    const a=.055+slow*.035+fast*.014;
-    const g=ctx.createRadialGradient(x,y,1,x,y,r);
-    g.addColorStop(0,`rgba(255,236,164,${a*3.1})`);
-    g.addColorStop(.30,`rgba(255,188,77,${a*1.35})`);
-    g.addColorStop(1,'rgba(255,137,35,0)');
+    const flick=.10+.045*(.5+.5*Math.sin(t*3.1+ph))+.025*(.5+.5*Math.sin(t*7.7+ph*2));
+    const g=ctx.createRadialGradient(x,y,2,x,y,r);
+    g.addColorStop(0,`rgba(255,231,151,${Math.min(.42,flick*2.6)})`);
+    g.addColorStop(.38,`rgba(255,180,73,${flick})`);g.addColorStop(1,'rgba(255,145,30,0)');
     ctx.fillStyle=g;ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.fill();
   }
-
-  // 2) Both windows — drifting clouds, breeze in foliage, tiny passing leaves.
-  const windows=[[82,96,105,82],[688,96,112,82]];
+  // Window animation: moving clouds + wind-swaying tree silhouettes, clipped to glass.
+  const windows=[[52,68,137,68],[846,66,96,72]];
   windows.forEach(([x,y,w,h],wi)=>{
     ctx.save();ctx.beginPath();ctx.rect(x,y,w,h);ctx.clip();
-    const cloudSpeed=5.5+wi*1.2;
+    // clouds continuously drift left-to-right
     for(let i=0;i<3;i++){
-      const cx=x-40+((t*cloudSpeed+i*(w*.58+35))%(w+90));
-      const cy=y+15+i*17+(wi?3:0);
-      ctx.fillStyle='rgba(255,252,226,.22)';
-      ctx.fillRect(Math.round(cx),Math.round(cy),30,4);
-      ctx.fillRect(Math.round(cx+7),Math.round(cy-4),16,4);
-      ctx.fillRect(Math.round(cx+17),Math.round(cy+4),19,3);
+      const cx=x-34+((t*(7+wi*1.5)+i*(w/2+28))%(w+70));
+      const cy=y+14+i*15;
+      ctx.fillStyle='rgba(255,250,218,.36)';
+      ctx.fillRect(Math.round(cx),cy,24,4);ctx.fillRect(Math.round(cx+6),cy-4,13,4);
     }
-    const sway=Math.sin(t*1.05+wi*.8)*3.2;
-    ctx.fillStyle='rgba(70,113,53,.20)';
-    for(let i=0;i<5;i++){
-      const bx=x+7+i*(w/4)+sway*(i%2?1:-.7);
-      const by=y+h-15-(i%3)*7;
-      ctx.beginPath();ctx.arc(bx,by,10+(i%2)*3,0,Math.PI*2);ctx.fill();
-    }
+    // tree canopies sway in the breeze
+    const sway=Math.sin(t*1.35+wi)*4;
+    ctx.fillStyle='rgba(65,105,53,.34)';
     for(let i=0;i<4;i++){
-      const lx=x+((t*(8+wi)+i*37)%(w+16))-8;
-      const ly=y+24+((i*17)%46)+Math.sin(t*1.7+i)*4;
-      ctx.fillStyle='rgba(118,151,70,.34)';ctx.fillRect(Math.round(lx),Math.round(ly),3,2);
+      const bx=x+12+i*(w/3)+sway*(i%2?.65:-.45);
+      const by=y+h-18-(i%2)*8;
+      ctx.beginPath();ctx.arc(bx,by,12+(i%2)*3,0,Math.PI*2);ctx.fill();
+    }
+    // small leaves occasionally cross the window
+    for(let i=0;i<5;i++){
+      const lx=x+((t*(10+wi*2)+i*29)%(w+12))-6;
+      const ly=y+18+((i*13)%Math.max(20,h-24))+Math.sin(t*2+i)*3;
+      ctx.fillStyle='rgba(105,145,73,.46)';ctx.fillRect(Math.round(lx),Math.round(ly),3,2);
     }
     ctx.restore();
   });
-
-  // 3) Sunlight reacts to passing clouds. Baked sunbeams remain, but their intensity and shadows breathe.
-  const cloud=(.5+.5*Math.sin(t*.24))*(.5+.5*Math.sin(t*.11+1.3));
-  ctx.save();ctx.beginPath();ctx.rect(0,300,960,240);ctx.clip();
-  ctx.globalCompositeOperation='multiply';
-  const shadeAlpha=.018+cloud*.075;
-  ctx.fillStyle=`rgba(83,72,62,${shadeAlpha})`;
-  const drift=((t*13)%125)-70;
-  ctx.save();ctx.translate(drift,0);ctx.rotate(-.11);
-  ctx.fillRect(110,270,105,330);ctx.fillRect(370,270,145,330);ctx.fillRect(720,270,90,330);
+  // Moving afternoon sunlight near the sleeping cat. Slow drifting bands imply moving foliage/clouds.
+  ctx.save();ctx.globalCompositeOperation='screen';
+  const sunShift=Math.sin(t*.28)*18;
+  const sunAlpha=.075+.025*(.5+.5*Math.sin(t*.55));
+  ctx.fillStyle=`rgba(255,190,88,${sunAlpha})`;
+  ctx.beginPath();ctx.moveTo(0,272);ctx.lineTo(125+sunShift,285);ctx.lineTo(225+sunShift,430);ctx.lineTo(45,430);ctx.closePath();ctx.fill();
+  ctx.fillStyle=`rgba(255,222,139,${sunAlpha*.75})`;
+  ctx.beginPath();ctx.moveTo(18,286);ctx.lineTo(65+sunShift,290);ctx.lineTo(158+sunShift,423);ctx.lineTo(104,423);ctx.closePath();ctx.fill();
   ctx.restore();
-  ctx.globalCompositeOperation='screen';
-  const warm=.018+(1-cloud)*.035;
-  const sg=ctx.createLinearGradient(0,300,620,540);sg.addColorStop(0,`rgba(255,210,117,${warm})`);sg.addColorStop(1,'rgba(255,185,70,0)');ctx.fillStyle=sg;ctx.fillRect(0,300,720,240);
-  ctx.restore();
-
-  // 4) Sleeping cat — slow breathing plus an occasional tiny tail/ear twitch.
-  const breath=.5+.5*Math.sin(t*1.35);
-  ctx.fillStyle=`rgba(255,232,186,${.025+breath*.035})`;
-  ctx.beginPath();ctx.ellipse(64,285,28+breath*1.2,8+breath*.6,0,0,Math.PI*2);ctx.fill();
-  if((t%9.2)>8.35){ctx.strokeStyle='rgba(116,69,39,.42)';ctx.lineWidth=2;ctx.beginPath();ctx.arc(86,286,8,5,.2,1.7);ctx.stroke();}
-
-  // 5) Espresso / hot-cup steam — soft, intermittent motion around the barista station.
-  const steam=t%7.2;
-  if(steam<4.8){for(let i=0;i<3;i++){const life=(steam+i*.8)%4.8;const a=Math.max(0,.22-life*.035);ctx.strokeStyle=`rgba(255,248,231,${a})`;ctx.lineWidth=1.5;ctx.beginPath();ctx.arc(477+Math.sin(t*1.8+i)*3,246-life*8-i*2,5+i*1.5,.15*Math.PI,1.08*Math.PI);ctx.stroke();}}
-
-  // 6) Barista is part of the painting. Animate facial/working details on top so it never looks pasted on.
-  // blink
-  if((t%5.6)>5.35){ctx.strokeStyle='rgba(74,46,31,.92)';ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(485,223);ctx.lineTo(489,223);ctx.moveTo(496,223);ctx.lineTo(500,223);ctx.stroke();}
-  // subtle breathing / apron light pulse
-  const nb=.5+.5*Math.sin(t*1.55);
-  ctx.fillStyle=`rgba(255,228,163,${.018+nb*.018})`;ctx.beginPath();ctx.ellipse(492,241,18,10,0,0,Math.PI*2);ctx.fill();
-  // occasional hand-to-cup gesture suggested by a tiny warm moving highlight
-  const work=t%8.0;if(work>5.6&&work<7.2){const p=(work-5.6)/1.6;ctx.fillStyle='rgba(255,220,151,.34)';ctx.beginPath();ctx.arc(506+p*8,241-Math.sin(p*Math.PI)*4,2.2,0,Math.PI*2);ctx.fill();}
-
+  // Espresso steam in intermittent cycles.
+  const steamPhase=t%6.5;
+  if(steamPhase<4.0){for(let i=0;i<3;i++){const life=(steamPhase+i*.7)%4;const a=Math.max(0,.28-life*.06);ctx.strokeStyle=`rgba(255,247,225,${a})`;ctx.lineWidth=2;ctx.beginPath();ctx.arc(650+Math.sin(t*2+i)*3,184-life*8-i*4,5+i*2,.15*Math.PI,1.1*Math.PI);ctx.stroke();}}
+  // Sleeping cat breath + occasional tail twitch.
+  const catBreath=.06+.05*(.5+.5*Math.sin(t*1.45));ctx.fillStyle=`rgba(255,224,172,${catBreath})`;ctx.beginPath();ctx.ellipse(67,240,29,10,0,0,Math.PI*2);ctx.fill();
+  if((t%8.5)>7.7){ctx.strokeStyle='rgba(99,59,38,.55)';ctx.lineWidth=3;ctx.beginPath();ctx.arc(96,243,10,7,.3,1.55);ctx.stroke();}
   ctx.restore();
 }
+
 /* ================================================================
-   ZOO:CAFE v33 — UNIFIED LIVING CAFE
+   ZOO:CAFE v32 — LIVING CAFE INTERIOR
    Replace assets/cafe/interior/cafe-background.png to redesign the
    entire café interior without touching game.js.
    Lion café staff is animated as a living foreground layer at the POS area.
@@ -772,6 +773,9 @@ drawCafe=function(){
   ctx.imageSmoothingEnabled=false;
   ctx.drawImage(cafeInteriorImage,0,0,W,H);
   drawCafeAmbient();
+  drawBaristaNPC();
+  // speech bubble remains dynamic so it can later react to NPC state.
+  RR(CAFE_NPC.x+26,CAFE_NPC.y-60,35,26,12,'#fff8e8','#56382c',3);T('•••',CAFE_NPC.x+43,CAFE_NPC.y-47,12,'#56382c','center',900);
 };
 
 function ensureCafeNpcMenu(){
@@ -805,6 +809,22 @@ window.addEventListener('keydown',e=>{
 // Replace the old mobile action behavior with the same contextual interaction.
 const v27Action=document.getElementById('mobileActionBtn');
 v27Action?.addEventListener('pointerdown',e=>{e.preventDefault();e.stopImmediatePropagation();startBgm();if(chatActive){closeChat();return}if(!cafeNpcMenuOpen)cafeInteract();},true);
+
+// v34 — phone café camera. Keep Mung-saja at the center while moving and show the whole 16:9 scene.
+const v34Coarse=window.matchMedia?.('(hover:none) and (pointer:coarse)').matches || window.innerWidth<=760;
+const drawBeforeV34Cafe=draw;
+if(v34Coarse){
+  draw=function(){
+    if(mode!=='cafe'){drawBeforeV34Cafe();return;}
+    ctx.clearRect(0,0,W,H);
+    // Café background remains a single completed picture; only living layers/player are drawn above it.
+    drawCafe();
+    sprite(cafePlayer,cafePlayer.x,cafePlayer.y);
+    for(const r of remotePlayers.values())if(r.mode==='cafe')drawRemote(r,0,0);
+    if(performance.now()<bubble.until)bubbleText(bubble.text,cafePlayer.x,cafePlayer.y);
+    interaction.hidden=true;
+  };
+}
 
 // Context-sensitive prompt inside buildings.
 const drawV27Base=draw;
