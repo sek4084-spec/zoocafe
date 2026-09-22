@@ -82,7 +82,7 @@ if(mobileMove.active){dx=mobileMove.x*SPEED;dy=mobileMove.y*SPEED;m=Math.hypot(m
 if(keys.w||keys.arrowup){dy=-SPEED;p.dir='up';m=true}if(keys.s||keys.arrowdown){dy=SPEED;p.dir='down';m=true}if(keys.a||keys.arrowleft){dx=-SPEED;p.dir='left';m=true}if(keys.d||keys.arrowright){dx=SPEED;p.dir='right';m=true}if(dx&&dy){dx*=.7071;dy*=.7071}return[dx,dy,m]}
 function moveWorld(){let[dx,dy,m]=input(player),nx=clamp(player.x+dx,PH,WORLD_W-PH),ny=clamp(player.y+dy,PH,WORLD_H-PH),b={x:nx-16,y:ny-10,w:32,h:34};if(!worldSolids.some(o=>hit(b,o))){player.x=nx;player.y=ny}animate(player,m)}
 function moveCafe(){let[dx,dy,m]=input(cafePlayer),nx=clamp(cafePlayer.x+dx,PH,W-PH),ny=clamp(cafePlayer.y+dy,255,H-PH),b={x:nx-15,y:ny-9,w:30,h:32};if(!cafeSolids.some(o=>hit(b,o))){cafePlayer.x=nx;cafePlayer.y=ny}else{let bx={x:nx-15,y:cafePlayer.y-9,w:30,h:32},by={x:cafePlayer.x-15,y:ny-9,w:30,h:32};if(!cafeSolids.some(o=>hit(bx,o)))cafePlayer.x=nx;if(!cafeSolids.some(o=>hit(by,o)))cafePlayer.y=ny}animate(cafePlayer,m)}
-function updateCamera(dt){const dz={l:330,r:630,t:185,b:355};let tx=camera.x,ty=camera.y,sx=player.x-camera.x,sy=player.y-camera.y;if(sx<dz.l)tx=player.x-dz.l;if(sx>dz.r)tx=player.x-dz.r;if(sy<dz.t)ty=player.y-dz.t;if(sy>dz.b)ty=player.y-dz.b;let k=Math.min(1,dt*8);camera.x+=(tx-camera.x)*k;camera.y+=(ty-camera.y)*k;camera.x=clamp(camera.x,0,WORLD_W-W);camera.y=clamp(camera.y,0,WORLD_H-H)}
+function updateCamera(dt){camera.x=player.x-W/2;camera.y=player.y-H/2}
 function nearCafe(){return Math.hypot(player.x-(cafe.door.x+18),player.y-(cafe.door.y+45))<85}
 function enter(){if(mode==='world'&&nearCafe()&&cooldown<=0){mode='cafe';syncBgm();cafePlayer={x:480,y:465,dir:'up',frame:2,t:0,moving:false};cooldown=.22}}
 function exit(){if(mode==='cafe'&&cooldown<=0){mode='world';syncBgm();player.x=cafe.door.x+18;player.y=cafe.door.y+92;player.dir='down';camera.x=clamp(player.x-W/2,0,WORLD_W-W);camera.y=clamp(player.y-H/2,0,WORLD_H-H);cooldown=.28}}
@@ -562,12 +562,8 @@ window.ZooCafeGame.getState=function(){const p=mode==='world'?player:cafePlayer;
   const oldUpdateCamera=updateCamera;
   updateCamera=function(dt){
     const vw=W/MOBILE_WORLD_SCALE,vh=H/MOBILE_WORLD_SCALE;
-    const dz={l:vw*.34,r:vw*.66,t:vh*.34,b:vh*.66};
-    let tx=camera.x,ty=camera.y,sx=player.x-camera.x,sy=player.y-camera.y;
-    if(sx<dz.l)tx=player.x-dz.l;if(sx>dz.r)tx=player.x-dz.r;
-    if(sy<dz.t)ty=player.y-dz.t;if(sy>dz.b)ty=player.y-dz.b;
-    const k=Math.min(1,dt*8);camera.x+=(tx-camera.x)*k;camera.y+=(ty-camera.y)*k;
-    camera.x=clamp(camera.x,0,WORLD_W-vw);camera.y=clamp(camera.y,0,WORLD_H-vh);
+    camera.x=player.x-vw/2;
+    camera.y=player.y-vh/2;
   };
   const oldDraw=draw;
   draw=function(){
