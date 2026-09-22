@@ -553,3 +553,39 @@ window.ZooCafeGame.getState=function(){const p=mode==='world'?player:cafePlayer;
   chatBtn?.addEventListener('pointerdown',e=>{e.preventDefault();chatActive?closeChat():openChat()});
   document.addEventListener('visibilitychange',()=>{if(document.hidden)release()});
 })();
+
+// v24 — phone view: show more of the map and keep chat collapsed by default.
+(function setupMobileViewV24(){
+  const coarse=window.matchMedia?.('(hover:none) and (pointer:coarse)').matches;
+  if(!coarse)return;
+  const MOBILE_WORLD_SCALE=.78;
+  const oldUpdateCamera=updateCamera;
+  updateCamera=function(dt){
+    const vw=W/MOBILE_WORLD_SCALE,vh=H/MOBILE_WORLD_SCALE;
+    const dz={l:vw*.34,r:vw*.66,t:vh*.34,b:vh*.66};
+    let tx=camera.x,ty=camera.y,sx=player.x-camera.x,sy=player.y-camera.y;
+    if(sx<dz.l)tx=player.x-dz.l;if(sx>dz.r)tx=player.x-dz.r;
+    if(sy<dz.t)ty=player.y-dz.t;if(sy>dz.b)ty=player.y-dz.b;
+    const k=Math.min(1,dt*8);camera.x+=(tx-camera.x)*k;camera.y+=(ty-camera.y)*k;
+    camera.x=clamp(camera.x,0,WORLD_W-vw);camera.y=clamp(camera.y,0,WORLD_H-vh);
+  };
+  const oldDraw=draw;
+  draw=function(){
+    if(mode!=='world'){oldDraw();return;}
+    ctx.clearRect(0,0,W,H);
+    ctx.save();ctx.scale(MOBILE_WORLD_SCALE,MOBILE_WORLD_SCALE);ctx.translate(-Math.round(camera.x),-Math.round(camera.y));
+    drawWorld();sprite(player,player.x,player.y);for(const r of remotePlayers.values())if(r.mode==='world')drawRemote(r,0,0);ctx.restore();
+    if(performance.now()<bubble.until)bubbleText(bubble.text,(player.x-camera.x)*MOBILE_WORLD_SCALE,(player.y-camera.y)*MOBILE_WORLD_SCALE);
+    const n=nearestEntrance();interaction.hidden=chatActive||!n;interactionText.textContent=n?`${n.name} 들어가기`:'들어가기';
+  };
+
+  const panel=document.getElementById('chatPanel');
+  const chatBtn=document.getElementById('mobileChatBtn');
+  document.body.classList.remove('mobile-chat-open');
+  chatBtn?.addEventListener('pointerdown',e=>{
+    e.stopImmediatePropagation();e.preventDefault();
+    if(chatActive){closeChat();document.body.classList.remove('mobile-chat-open');return;}
+    document.body.classList.toggle('mobile-chat-open');
+  },true);
+  panel?.addEventListener('click',()=>{document.body.classList.add('mobile-chat-open')});
+})();
