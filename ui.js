@@ -11,6 +11,6 @@ function show(name){content.innerHTML=(panels[name]||panels.menu)();layer.hidden
 function hide(){layer.hidden=true;document.body.classList.remove('menu-open')}
 document.querySelectorAll('[data-panel]').forEach(b=>b.addEventListener('click',()=>show(b.dataset.panel)));
 close.addEventListener('click',hide);layer.addEventListener('click',e=>{if(e.target===layer)hide();const go=e.target.closest('[data-go]');if(go)show(go.dataset.go);if(e.target.closest('[data-close]'))hide()});
-addEventListener('keydown',e=>{if(!layer.hidden){if(e.key==='Escape'){e.preventDefault();hide()}return}if(document.activeElement?.id==='chatInput')return;const k=e.key.toLowerCase();if(k==='escape'){e.preventDefault();show('menu')}else if(k==='i'){e.preventDefault();show('inventory')}else if(k==='m'){e.preventDefault();show('map')}} ,true);
+addEventListener('keydown',e=>{if(e.target?.matches?.('input, textarea, select, [contenteditable=\"true\"]'))return;if(!layer.hidden){if(e.key==='Escape'){e.preventDefault();hide()}return}if(document.activeElement?.id==='chatInput')return;const k=e.key.toLowerCase();if(k==='escape'){e.preventDefault();show('menu')}else if(k==='i'){e.preventDefault();show('inventory')}else if(k==='m'){e.preventDefault();show('map')}} ,true);
 document.querySelectorAll('.chat-tabs button').forEach(b=>b.addEventListener('click',e=>{e.stopPropagation();document.querySelectorAll('.chat-tabs button').forEach(x=>x.classList.remove('active'));b.classList.add('active')}));
 })();

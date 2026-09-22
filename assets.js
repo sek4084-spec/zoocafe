@@ -21,6 +21,7 @@ window.ZooAssets = (() => {
     animals: { duck: ['assets/animals/duck_01.png','assets/animals/duck_02.png'] },
     props: { bridge: 'assets/props/bridge_01.png', steppingStones: 'assets/props/stepping_stones_01.png', cafeTable: 'assets/props/cafe_table_01.png', umbrella: 'assets/props/umbrella_01.png', planter: 'assets/props/planter_01.png', chalkboard: 'assets/props/chalkboard_01.png', barrelPlanter: 'assets/props/barrel_planter_01.png' },
     buildings: { cafeExterior: 'assets/buildings/cafe_exterior_01.png' },
+    cafe: { interior: 'assets/cafe/interior/cafe-background.png' },
     waterDecor: { lilyPad: ['assets/water/lilypad_01.png','assets/water/lilypad_02.png'], reeds: ['assets/water/reeds_01.png','assets/water/reeds_02.png'], shoreRocks: 'assets/nature/shore_rocks_01.png' }
   };
   const images = new Map();

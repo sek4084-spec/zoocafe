@@ -29,7 +29,7 @@ let player={x:1430,y:980,dir:'down',frame:2,t:0,moving:false}, cafePlayer={x:480
 let camera={x:player.x-W/2,y:player.y-H/2};
 const cafe={x:1260,y:430,w:340,h:235,door:{x:1412,y:615,w:36,h:50}};
 const worldSolids=[{x:1260,y:430,w:340,h:185}];
-const cafeSolids=[{x:0,y:0,w:960,h:236},{x:286,y:132,w:388,h:86},{x:82,y:344,w:160,h:92},{x:368,y:333,w:224,h:72},{x:752,y:350,w:122,h:74},{x:868,y:245,w:78,h:112}];
+const cafeSolids=[{x:0,y:0,w:960,h:305},{x:55,y:340,w:185,h:110},{x:615,y:340,w:195,h:115},{x:0,y:430,w:115,h:110},{x:835,y:420,w:125,h:120}];
 const C={ink:'#4b3429',ink2:'#654637',grass:'#86c968',grass2:'#70b65a',grass3:'#a5dc79',path:'#dfbd80',path2:'#cfa66a',wood:'#a66f4c',wood2:'#8a583d',cream:'#f2ddb0',wall:'#efd9ad',green:'#5f8550',leaf:'#4f8a46',leaf2:'#78ad50',leaf3:'#a3ce65'};
 function clamp(v,a,b){return Math.max(a,Math.min(b,v))}function hit(a,b){return a.x<b.x+b.w&&a.x+a.w>b.x&&a.y<b.y+b.h&&a.y+a.h>b.y}
 function R(x,y,w,h,fill,stroke=null,lw=1){ctx.fillStyle=fill;ctx.fillRect(Math.round(x),Math.round(y),Math.round(w),Math.round(h));if(stroke){ctx.strokeStyle=stroke;ctx.lineWidth=lw;ctx.strokeRect(Math.round(x)+.5,Math.round(y)+.5,Math.round(w)-1,Math.round(h)-1)}}
@@ -65,26 +65,73 @@ R(1550,135,150,94,'#f1d8aa',C.ink,5);R(1530,105,190,40,'#7b5038',C.ink,5);R(1574
 function shelf(x,y,w){R(x,y,w,9,'#784c34',C.ink,3);for(let i=0;i<Math.floor(w/26);i++){R(x+7+i*25,y-18,13,15,['#c48a5e','#eee0c3','#80986b'][i%3],C.ink,2)}}
 function chair(x,y){shadow(x+20,y+35,23,6,.1);R(x,y,40,24,'#815238',C.ink,4);R(x+5,y+22,7,27,'#57382a');R(x+28,y+22,7,27,'#57382a')}
 function bookshelf(x,y){R(x,y,70,94,'#754a32',C.ink,5);for(let i=0;i<4;i++){R(x+8,y+9+i*20,54,11,'#9e6a45');for(let j=0;j<4;j++)R(x+11+j*13,y+11+i*20,8,8,['#c68159','#6f8d66','#b96850','#d2ab6b'][j])}}
-function drawCafe(){R(0,0,W,H,C.wall);R(0,235,W,H-235,'#b57c57');for(let y=240;y<H;y+=25){R(0,y,W,2,'#9c684a');for(let x=(y%50?20:0);x<W;x+=120)R(x,y,2,25,'rgba(107,70,50,.18)')}R(0,0,W,8,'#6b4732');R(0,228,W,8,'#6b4732');
-R(40,86,90,142,'#724931',C.ink,6);R(50,98,70,58,'#9fd0da',C.ink,4);R(83,98,5,58,C.ink);R(50,124,70,5,C.ink);T('ZOO',85,180,13,'#f5e0b9','center',900);T('CAFE',85,198,13,'#f5e0b9','center',900);R(48,226,75,14,'#66825a',C.ink,3);
-R(160,55,112,96,'#acd9e2',C.ink,6);R(212,55,6,96,C.ink);R(160,99,112,6,C.ink);pot(315,83,.8);RR(292,92,42,42,2,'#f8e8c8','#684635',4);T('☕',313,113,18,C.ink,'center',800);
-RR(350,28,310,68,4,'#f7e3b3',C.ink,5);T('☕ ZOO:CAFE',505,56,25,C.ink,'center',900);T('a little cafe for little stories',505,81,10,'#76513e','center',700);shelf(355,122,118);shelf(690,117,84);shelf(790,210,95);
-R(286,132,388,86,'#96603f',C.ink,6);R(286,128,388,13,'#b97950',C.ink,4);R(286,197,388,21,'#744831');R(305,154,86,48,'#c7e0df',C.ink,4);R(312,161,72,34,'#f0ddb9');R(321,170,20,12,'#c97955');R(351,170,20,12,'#e3a264');
-R(462,118,61,39,'#5b5956','#353432',5);R(471,128,14,8,'#e2b64e','#363532',2);R(499,128,14,8,'#e9e7df','#363532',2);R(484,144,17,10,'#403a35');R(540,130,25,28,'#71513b',C.ink,3);R(544,122,17,9,'#8e6549');for(let i=0;i<3;i++)R(584+i*18,178,12,9,'#f2e4c7','#684633',2);
-R(785,45,137,145,'#493a31','#684633',6);T('MENU',853,69,17,'#f6dfb1','center',900);['COFFEE   3','LATTE     4','TEA       3','CAKE      4'].forEach((s,i)=>T(s,853,98+i*22,12,'#f6dfb1','center',700));bookshelf(875,235);pot(930,220,.8);
-R(82,344,160,92,'#70845e','#4d5d43',6);R(94,357,64,64,'#84976f','#4d5d43',4);R(164,357,64,64,'#84976f','#4d5d43',4);RR(120,398,64,38,18,'#89583b','#563626',4);T('☕',152,417,15,'#f7e3c0','center');pot(250,360,.7);
-R(338,292,285,142,'#d7c096','#aa8f65',5);R(349,303,263,120,'#e5d1a9');R(382,337,196,64,'#8b593b',C.ink,5);R(398,347,164,7,'#ad734b');chair(390,300);chair(530,300);chair(390,405);chair(530,405);T('☘',470,369,18,'#4d7541','center');T('▱',526,369,14,'#f0dfbd','center');
-ctx.fillStyle='#8b593b';ctx.beginPath();ctx.ellipse(800,371,61,38,0,0,Math.PI*2);ctx.fill();ctx.strokeStyle=C.ink;ctx.lineWidth=5;ctx.stroke();R(796,405,8,26,C.ink);chair(742,340);chair(824,340);T('☕',800,368,14,'#f6e2bf','center');pot(700,430,.8);RR(700,472,135,45,3,'#52714b','#3f573b',4);T('WELCOME',767,493,14,'#d8d89c','center',900);}
+function cafeLamp(x,y){
+  px(x-2,y-18,4,18,'#493328');R(x-11,y,22,18,'#6c4932','#3d2b24',3);R(x-7,y+4,14,10,'#ffd56d');
+  ctx.fillStyle='rgba(255,202,91,.12)';ctx.beginPath();ctx.arc(x,y+9,38,0,Math.PI*2);ctx.fill();
+}
+function cafePlant(x,y,s=1){
+  R(x-12*s,y,24*s,18*s,'#9a603f','#50362b',3);for(const a of [-18,-8,4,15]){ctx.fillStyle=a%2?'#4d8546':'#659a50';ctx.beginPath();ctx.ellipse(x+a*s*.45,y-11*s-Math.abs(a)*.2*s,8*s,17*s,a*.025,0,Math.PI*2);ctx.fill()}
+}
+function cafeTable(x,y){shadow(x,y+25,50,9,.12);R(x-45,y-18,90,48,'#a66c45','#52372b',4);R(x-38,y-12,76,5,'#c98a58');R(x-34,y+30,8,28,'#5a3a2d');R(x+26,y+30,8,28,'#5a3a2d');flower(x,y+2,'#fff0c5')}
+function cafeChairSmall(x,y){R(x-16,y-15,32,29,'#85543a','#4d3329',4);R(x-12,y+13,6,24,'#55372b');R(x+7,y+13,6,24,'#55372b')}
+function drawBaristaNPC(){
+  const x=480,y=190;shadow(x,y+30,24,7,.15);
+  // orange fluffy mane/hair and ears, adapted from the supplied character reference
+  for(const [dx,dy,r] of [[-22,-17,13],[-10,-26,14],[5,-28,15],[20,-20,13],[-27,-4,11],[27,-3,11]]){ctx.fillStyle='#e97b2f';ctx.beginPath();ctx.arc(x+dx,y+dy,r,0,Math.PI*2);ctx.fill();ctx.strokeStyle='#573427';ctx.lineWidth=3;ctx.stroke()}
+  ctx.fillStyle='#f4bd55';ctx.beginPath();ctx.arc(x,y-3,25,0,Math.PI*2);ctx.fill();ctx.strokeStyle='#573427';ctx.lineWidth=3;ctx.stroke();
+  ctx.fillStyle='#f4bd55';for(const ex of [-24,24]){ctx.beginPath();ctx.arc(x+ex,y-16,10,0,Math.PI*2);ctx.fill();ctx.stroke()}
+  px(x-11,y-8,4,5,'#56382c');px(x+7,y-8,4,5,'#56382c');px(x-3,y,7,5,'#56382c');
+  R(x-24,y+19,48,31,'#f4ead5','#573427',3);R(x-20,y+27,40,26,'#513a2f');R(x-6,y+20,12,9,'#376a4a');
+  px(x-17,y+29,4,18,'#e97b2f');px(x+13,y+29,4,18,'#e97b2f');
+}
+function drawCafe(){
+  // warm detailed pixel café inspired by the approved mockup
+  R(0,0,W,H,'#c48a58');
+  // plank floor
+  for(let y=210;y<H;y+=24){R(0,y,W,2,'#9a623f');for(let x=((y/24)%2)*58;x<W;x+=116)R(x,y,2,24,'rgba(91,55,39,.22)')}
+  // back timber wall
+  R(0,0,W,210,'#a66f49');for(let y=18;y<205;y+=34)R(0,y,W,3,'#7d5038');
+  for(let x=20;x<W;x+=96)R(x,0,5,210,'rgba(83,52,38,.22)');
+  R(0,0,W,12,'#4d3429');R(0,202,W,9,'#62412f');
+  // windows
+  for(const x of [100,760]){R(x,58,112,92,'#573a2d','#3c2a23',6);R(x+9,67,94,74,'#8fc6cf');R(x+53,67,5,74,'#4d362c');R(x+9,102,94,5,'#4d362c');R(x+12,70,39,29,'#bde1e5');R(x+59,70,41,29,'#bde1e5')}
+  // main sign and shelves
+  RR(300,26,360,70,5,'#4b3329','#2f231e',6);T('ZOO:CAFE',480,58,31,'#ffe8b2','center',900);T('☕',608,59,24,'#ffe8b2','center',900);
+  shelf(300,128,155);shelf(510,126,150);shelf(690,128,92);
+  // counter + coffee equipment
+  R(286,160,390,94,'#8e593b','#493126',6);R(270,154,422,18,'#c28a58','#493126',4);R(286,232,390,22,'#67432f');
+  R(326,174,68,47,'#4f4d49','#342f2c',4);R(334,182,20,12,'#d7ad50');R(365,182,20,12,'#ddd9ce');
+  R(548,176,58,42,'#5c5148','#352d29',4);R(615,188,48,31,'#302e2c','#1f1e1d',3);R(625,193,29,16,'#78a8a3');
+  // pastry dome
+  R(414,202,70,18,'#7a4c34','#4b3228',3);ctx.strokeStyle='#e9dcc2';ctx.lineWidth=4;ctx.beginPath();ctx.arc(449,201,29,Math.PI,0);ctx.stroke();R(427,191,18,9,'#d78a4e');R(452,188,18,12,'#e3a65b');
+  drawBaristaNPC();
+  // menu board
+  R(716,82,126,142,'#38352f','#5c3b2d',6);T('MENU',779,105,18,'#f6dfb1','center',900);['Coffee  ···','Tea     ···','Dessert ···'].forEach((q,i)=>T(q,779,136+i*26,13,'#f6dfb1','center',700));
+  // books/cabinets/plants
+  bookshelf(55,170);cafePlant(70,152,.9);cafePlant(872,173,.8);R(850,112,82,85,'#845438','#51362b',5);shelf(857,139,68);
+  // central rug/table
+  R(335,318,290,155,'#687d51','#4b5d3e',5);R(346,329,268,133,'#768b5b');cafeTable(480,382);cafeChairSmall(410,385);cafeChairSmall(550,385);
+  // side tables with patrons' spaces
+  cafeTable(185,344);cafeChairSmall(120,347);cafeChairSmall(250,347);cafeTable(790,344);cafeChairSmall(725,347);cafeChairSmall(855,347);
+  // ambient plants + lamps
+  cafePlant(42,455,1.05);cafePlant(918,455,1.05);cafePlant(285,244,.75);cafePlant(686,245,.75);
+  for(const [x,y] of [[245,30],[715,30],[90,18]])cafeLamp(x,y);
+  // entrance mat
+  R(390,505,180,34,'#9e5743','#5a382d',4);T('☕',480,522,18,'#f1d58e','center',900);
+  // NPC speech indicator
+  RR(CAFE_NPC.x+26,CAFE_NPC.y-60,35,26,12,'#fff8e8','#56382c',3);T('•••',CAFE_NPC.x+43,CAFE_NPC.y-47,12,'#56382c','center',900);
+}
+
 function sprite(p,x,y){const im=imgs[`${p.dir}-${p.frame}`];if(!im)return;shadow(x,y+29,22,7,.17);ctx.drawImage(im,Math.round(x-SPRITE_W/2),Math.round(y-SPRITE_H/2),SPRITE_W,SPRITE_H)}
 function animate(p,m){p.moving=m;if(m){if(++p.t>=6){p.t=0;p.frame=p.frame===3?1:p.frame+1}}else{p.t=0;p.frame=2}}
 function input(p){let dx=0,dy=0,m=false;if(chatActive)return[0,0,false];
 if(mobileMove.active){dx=mobileMove.x*SPEED;dy=mobileMove.y*SPEED;m=Math.hypot(mobileMove.x,mobileMove.y)>.08;if(m){if(Math.abs(mobileMove.x)>Math.abs(mobileMove.y))p.dir=mobileMove.x<0?'left':'right';else p.dir=mobileMove.y<0?'up':'down'}return[dx,dy,m]}
 if(keys.w||keys.arrowup){dy=-SPEED;p.dir='up';m=true}if(keys.s||keys.arrowdown){dy=SPEED;p.dir='down';m=true}if(keys.a||keys.arrowleft){dx=-SPEED;p.dir='left';m=true}if(keys.d||keys.arrowright){dx=SPEED;p.dir='right';m=true}if(dx&&dy){dx*=.7071;dy*=.7071}return[dx,dy,m]}
 function moveWorld(){let[dx,dy,m]=input(player),nx=clamp(player.x+dx,PH,WORLD_W-PH),ny=clamp(player.y+dy,PH,WORLD_H-PH),b={x:nx-16,y:ny-10,w:32,h:34};if(!worldSolids.some(o=>hit(b,o))){player.x=nx;player.y=ny}animate(player,m)}
-function moveCafe(){let[dx,dy,m]=input(cafePlayer),nx=clamp(cafePlayer.x+dx,PH,W-PH),ny=clamp(cafePlayer.y+dy,255,H-PH),b={x:nx-15,y:ny-9,w:30,h:32};if(!cafeSolids.some(o=>hit(b,o))){cafePlayer.x=nx;cafePlayer.y=ny}else{let bx={x:nx-15,y:cafePlayer.y-9,w:30,h:32},by={x:cafePlayer.x-15,y:ny-9,w:30,h:32};if(!cafeSolids.some(o=>hit(bx,o)))cafePlayer.x=nx;if(!cafeSolids.some(o=>hit(by,o)))cafePlayer.y=ny}animate(cafePlayer,m)}
+function moveCafe(){let[dx,dy,m]=input(cafePlayer),nx=clamp(cafePlayer.x+dx,PH,W-PH),ny=clamp(cafePlayer.y+dy,255,H-PH),b={x:nx-12,y:ny-7,w:24,h:28};if(!cafeSolids.some(o=>hit(b,o))){cafePlayer.x=nx;cafePlayer.y=ny}else{let bx={x:nx-12,y:cafePlayer.y-7,w:24,h:28},by={x:cafePlayer.x-12,y:ny-7,w:24,h:28};if(!cafeSolids.some(o=>hit(bx,o)))cafePlayer.x=nx;if(!cafeSolids.some(o=>hit(by,o)))cafePlayer.y=ny}animate(cafePlayer,m)}
 function updateCamera(dt){camera.x=player.x-W/2;camera.y=player.y-H/2}
 function nearCafe(){return Math.hypot(player.x-(cafe.door.x+18),player.y-(cafe.door.y+45))<85}
-function enter(){if(mode==='world'&&nearCafe()&&cooldown<=0){mode='cafe';syncBgm();cafePlayer={x:480,y:465,dir:'up',frame:2,t:0,moving:false};cooldown=.22}}
+function enter(){if(mode==='world'&&nearCafe()&&cooldown<=0){mode='cafe';syncBgm();cafePlayer={x:480,y:475,dir:'up',frame:2,t:0,moving:false};const spawnBox={x:cafePlayer.x-15,y:cafePlayer.y-9,w:30,h:32};if(cafeSolids.some(o=>hit(spawnBox,o))){cafePlayer.x=480;cafePlayer.y=500;}cooldown=.22}}
 function exit(){if(mode==='cafe'&&cooldown<=0){mode='world';syncBgm();player.x=cafe.door.x+18;player.y=cafe.door.y+92;player.dir='down';camera.x=clamp(player.x-W/2,0,WORLD_W-W);camera.y=clamp(player.y-H/2,0,WORLD_H-H);cooldown=.28}}
 function escHtml(s){return s.replace(/[&<>\"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'}[c]))}
 function renderChat(){chatLog.innerHTML=chatMessages.length?chatMessages.slice(-7).map(m=>`<div class="chat-row"><span class="who">${escHtml(m.name)}</span><span class="msg">${escHtml(m.text)}</span></div>`).join(''):'<div class="chat-empty">Enter를 눌러 이야기를 시작해보세요.</div>';chatLog.scrollTop=chatLog.scrollHeight}
@@ -98,7 +145,7 @@ function drawRemote(r,camX=0,camY=0){const im=imgs[`${r.dir||'down'}-${r.frame||
 function drawRemotes(room,camX=0,camY=0){for(const r of remotePlayers.values())if(r.mode===room)drawRemote(r,camX,camY)}
 function draw(){ctx.clearRect(0,0,W,H);if(mode==='world'){ctx.save();ctx.translate(-Math.round(camera.x),-Math.round(camera.y));drawWorld();sprite(player,player.x,player.y);for(const r of remotePlayers.values())if(r.mode==='world')drawRemote(r,0,0);ctx.restore();if(performance.now()<bubble.until)bubbleText(bubble.text,player.x-camera.x,player.y-camera.y);interaction.hidden=chatActive||!nearCafe();interactionText.textContent='카페 들어가기'}else{drawCafe();sprite(cafePlayer,cafePlayer.x,cafePlayer.y);for(const r of remotePlayers.values())if(r.mode==='cafe')drawRemote(r,0,0);if(performance.now()<bubble.until)bubbleText(bubble.text,cafePlayer.x,cafePlayer.y);interaction.hidden=true;RR(420,486,120,40,5,'rgba(54,43,34,.94)');RR(432,492,28,28,4,'#f5df9c');T('E',446,506,16,C.ink,'center',900);T('나가기',500,506,15,'#fff7e6','center',800)}}
 function loop(now){let dt=Math.min(.033,(now-last)/1000);last=now;cooldown=Math.max(0,cooldown-dt);waterT+=dt;if(ready){if(mode==='world'){moveWorld();updateCamera(dt)}else moveCafe();window.ZooCafeNet?.tick?.();draw()}requestAnimationFrame(loop)}
-addEventListener('keydown',e=>{let k=e.key.toLowerCase();if(chatActive){if(k==='escape'){e.preventDefault();closeChat()}return}if(k==='enter'){e.preventDefault();openChat();return}keys[k]=true;if(k.startsWith('arrow'))e.preventDefault();if(k==='e'){mode==='world'?enter():exit()}});
+addEventListener('keydown',e=>{if(e.target?.matches?.('input, textarea, select, [contenteditable=\"true\"]'))return;let k=e.key.toLowerCase();if(chatActive){if(k==='escape'){e.preventDefault();closeChat()}return}if(k==='enter'){e.preventDefault();openChat();return}keys[k]=true;if(k.startsWith('arrow'))e.preventDefault();if(k==='e'){mode==='world'?enter():exit()}});
 addEventListener('keyup',e=>{if(!chatActive)keys[e.key.toLowerCase()]=false});
 chatInput.addEventListener('keydown',e=>{e.stopPropagation();if(e.key==='Escape'){e.preventDefault();closeChat();return}if(e.key==='Enter'&&!e.isComposing){e.preventDefault();sendChat()}});
 chatInput.addEventListener('keyup',e=>e.stopPropagation());
@@ -585,3 +632,192 @@ window.ZooCafeGame.getState=function(){const p=mode==='world'?player:cafePlayer;
   },true);
   panel?.addEventListener('click',()=>{document.body.classList.add('mobile-chat-open')});
 })();
+
+/* v28 — contextual indoor interaction + approved classic lion barista */
+let cafeStyle='cozy';
+let cafeNpcMenuOpen=false;
+const CAFE_NPC={x:492,y:224};
+const CAFE_EXIT={x:480,y:505};
+
+function nearCafeNpc(){return mode==='cafe'&&Math.hypot(cafePlayer.x-CAFE_NPC.x,cafePlayer.y-CAFE_NPC.y)<145}
+function nearIndoorExit(){return mode!=='world'&&Math.hypot(cafePlayer.x-CAFE_EXIT.x,cafePlayer.y-CAFE_EXIT.y)<88}
+
+// v29 — external PNG café NPC asset.
+// Replace only this file to redesign the café keeper:
+// images/npc/cafe-staff-lion.png
+const cafeOwnerImage=new Image();
+cafeOwnerImage.src='images/npc/cafe-staff-lion.png';
+let cafeOwnerImageReady=false;
+cafeOwnerImage.onload=()=>{cafeOwnerImageReady=true;};
+cafeOwnerImage.onerror=()=>{console.warn('[ZOO:CAFE] NPC PNG not found: images/npc/cafe-staff-lion.png');};
+
+drawBaristaNPC=function(){}; // v33: lion barista is painted into the unified café background; motion is ambient overlay.
+
+function drawCafeStyleExtras(){
+  if(cafeStyle==='garden'){
+    // indoor greenery: vines and planters, kept away from walk lanes
+    for(let x=35;x<930;x+=72){px(x,18,5,18,'#4f8246');px(x+5,30,8,5,'#6c9b55')}
+    cafePlant(255,275,.8);cafePlant(705,275,.8);cafePlant(900,285,.9);
+    T('GARDEN CAFE',480,286,12,'#46633d','center',900);
+  }else if(cafeStyle==='library'){
+    bookshelf(250,278);bookshelf(790,278);shelf(355,282,250);
+    T('BOOK & COFFEE',480,294,12,'#684934','center',900);
+  }else if(cafeStyle==='warm'){
+    // extra warm lamps and small pools of light
+    cafeLamp(165,245);cafeLamp(795,245);
+    ctx.fillStyle='rgba(255,190,80,.055)';ctx.fillRect(0,0,W,H);
+    T('EVENING CAFE',480,286,12,'#8b5b35','center',900);
+  }
+}
+const drawCafeV26=drawCafe;
+drawCafe=function(){drawCafeV26();drawCafeStyleExtras();};
+
+
+
+function drawCafeAmbient(){
+  const t=waterT;
+  ctx.save();
+
+  // 1) Pendant lights — independent warm flicker, never harsh on/off.
+  const lamps=[[96,58,44,0],[231,100,32,.8],[310,100,32,1.7],[645,100,34,2.4],[720,58,46,3.1],[856,157,28,4.2],[326,516,34,1.2],[584,516,34,2.7],[919,476,38,3.7]];
+  for(const [x,y,r,ph] of lamps){
+    const slow=.5+.5*Math.sin(t*2.0+ph), fast=.5+.5*Math.sin(t*6.2+ph*1.9);
+    const a=.055+slow*.035+fast*.014;
+    const g=ctx.createRadialGradient(x,y,1,x,y,r);
+    g.addColorStop(0,`rgba(255,236,164,${a*3.1})`);
+    g.addColorStop(.30,`rgba(255,188,77,${a*1.35})`);
+    g.addColorStop(1,'rgba(255,137,35,0)');
+    ctx.fillStyle=g;ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.fill();
+  }
+
+  // 2) Both windows — drifting clouds, breeze in foliage, tiny passing leaves.
+  const windows=[[82,96,105,82],[688,96,112,82]];
+  windows.forEach(([x,y,w,h],wi)=>{
+    ctx.save();ctx.beginPath();ctx.rect(x,y,w,h);ctx.clip();
+    const cloudSpeed=5.5+wi*1.2;
+    for(let i=0;i<3;i++){
+      const cx=x-40+((t*cloudSpeed+i*(w*.58+35))%(w+90));
+      const cy=y+15+i*17+(wi?3:0);
+      ctx.fillStyle='rgba(255,252,226,.22)';
+      ctx.fillRect(Math.round(cx),Math.round(cy),30,4);
+      ctx.fillRect(Math.round(cx+7),Math.round(cy-4),16,4);
+      ctx.fillRect(Math.round(cx+17),Math.round(cy+4),19,3);
+    }
+    const sway=Math.sin(t*1.05+wi*.8)*3.2;
+    ctx.fillStyle='rgba(70,113,53,.20)';
+    for(let i=0;i<5;i++){
+      const bx=x+7+i*(w/4)+sway*(i%2?1:-.7);
+      const by=y+h-15-(i%3)*7;
+      ctx.beginPath();ctx.arc(bx,by,10+(i%2)*3,0,Math.PI*2);ctx.fill();
+    }
+    for(let i=0;i<4;i++){
+      const lx=x+((t*(8+wi)+i*37)%(w+16))-8;
+      const ly=y+24+((i*17)%46)+Math.sin(t*1.7+i)*4;
+      ctx.fillStyle='rgba(118,151,70,.34)';ctx.fillRect(Math.round(lx),Math.round(ly),3,2);
+    }
+    ctx.restore();
+  });
+
+  // 3) Sunlight reacts to passing clouds. Baked sunbeams remain, but their intensity and shadows breathe.
+  const cloud=(.5+.5*Math.sin(t*.24))*(.5+.5*Math.sin(t*.11+1.3));
+  ctx.save();ctx.beginPath();ctx.rect(0,300,960,240);ctx.clip();
+  ctx.globalCompositeOperation='multiply';
+  const shadeAlpha=.018+cloud*.075;
+  ctx.fillStyle=`rgba(83,72,62,${shadeAlpha})`;
+  const drift=((t*13)%125)-70;
+  ctx.save();ctx.translate(drift,0);ctx.rotate(-.11);
+  ctx.fillRect(110,270,105,330);ctx.fillRect(370,270,145,330);ctx.fillRect(720,270,90,330);
+  ctx.restore();
+  ctx.globalCompositeOperation='screen';
+  const warm=.018+(1-cloud)*.035;
+  const sg=ctx.createLinearGradient(0,300,620,540);sg.addColorStop(0,`rgba(255,210,117,${warm})`);sg.addColorStop(1,'rgba(255,185,70,0)');ctx.fillStyle=sg;ctx.fillRect(0,300,720,240);
+  ctx.restore();
+
+  // 4) Sleeping cat — slow breathing plus an occasional tiny tail/ear twitch.
+  const breath=.5+.5*Math.sin(t*1.35);
+  ctx.fillStyle=`rgba(255,232,186,${.025+breath*.035})`;
+  ctx.beginPath();ctx.ellipse(64,285,28+breath*1.2,8+breath*.6,0,0,Math.PI*2);ctx.fill();
+  if((t%9.2)>8.35){ctx.strokeStyle='rgba(116,69,39,.42)';ctx.lineWidth=2;ctx.beginPath();ctx.arc(86,286,8,5,.2,1.7);ctx.stroke();}
+
+  // 5) Espresso / hot-cup steam — soft, intermittent motion around the barista station.
+  const steam=t%7.2;
+  if(steam<4.8){for(let i=0;i<3;i++){const life=(steam+i*.8)%4.8;const a=Math.max(0,.22-life*.035);ctx.strokeStyle=`rgba(255,248,231,${a})`;ctx.lineWidth=1.5;ctx.beginPath();ctx.arc(477+Math.sin(t*1.8+i)*3,246-life*8-i*2,5+i*1.5,.15*Math.PI,1.08*Math.PI);ctx.stroke();}}
+
+  // 6) Barista is part of the painting. Animate facial/working details on top so it never looks pasted on.
+  // blink
+  if((t%5.6)>5.35){ctx.strokeStyle='rgba(74,46,31,.92)';ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(485,223);ctx.lineTo(489,223);ctx.moveTo(496,223);ctx.lineTo(500,223);ctx.stroke();}
+  // subtle breathing / apron light pulse
+  const nb=.5+.5*Math.sin(t*1.55);
+  ctx.fillStyle=`rgba(255,228,163,${.018+nb*.018})`;ctx.beginPath();ctx.ellipse(492,241,18,10,0,0,Math.PI*2);ctx.fill();
+  // occasional hand-to-cup gesture suggested by a tiny warm moving highlight
+  const work=t%8.0;if(work>5.6&&work<7.2){const p=(work-5.6)/1.6;ctx.fillStyle='rgba(255,220,151,.34)';ctx.beginPath();ctx.arc(506+p*8,241-Math.sin(p*Math.PI)*4,2.2,0,Math.PI*2);ctx.fill();}
+
+  ctx.restore();
+}
+/* ================================================================
+   ZOO:CAFE v33 — UNIFIED LIVING CAFE
+   Replace assets/cafe/interior/cafe-background.png to redesign the
+   entire café interior without touching game.js.
+   Lion café staff is animated as a living foreground layer at the POS area.
+   ================================================================ */
+const cafeInteriorImage=new Image();
+let cafeInteriorImageReady=false;
+cafeInteriorImage.src='assets/cafe/interior/cafe-background.png';
+cafeInteriorImage.onload=()=>{cafeInteriorImageReady=true;};
+cafeInteriorImage.onerror=()=>console.warn('[ZOO:CAFE] café background PNG not found');
+
+const drawCafeLegacyV30=drawCafe;
+drawCafe=function(){
+  if(!cafeInteriorImageReady){drawCafeLegacyV30();return;}
+  ctx.imageSmoothingEnabled=false;
+  ctx.drawImage(cafeInteriorImage,0,0,W,H);
+  drawCafeAmbient();
+};
+
+function ensureCafeNpcMenu(){
+  let el=document.getElementById('cafeNpcMenu');
+  if(el)return el;
+  el=document.createElement('div');el.id='cafeNpcMenu';el.className='cafe-npc-menu';el.hidden=true;
+  el.innerHTML=`<div class="npc-card"><button class="npc-close" type="button">×</button><div class="npc-face">🦁</div><div class="npc-copy"><b>카페지기</b><p>어서 와요! 오늘 카페 분위기를 어떻게 꾸며볼까요?</p></div><div class="npc-choices"><button data-style="cozy">1. 기본 카페</button><button data-style="garden">2. 초록 정원</button><button data-style="library">3. 책 카페</button><button data-style="warm">4. 따뜻한 조명</button></div><small>선택하면 카페 내부에 바로 적용돼요.</small></div>`;
+  document.getElementById('gameStage')?.appendChild(el);
+  el.querySelector('.npc-close')?.addEventListener('click',closeCafeNpcMenu);
+  el.querySelectorAll('[data-style]').forEach(btn=>btn.addEventListener('click',()=>{cafeStyle=btn.dataset.style;closeCafeNpcMenu();}));
+  return el;
+}
+function openCafeNpcMenu(){if(mode!=='cafe'||!nearCafeNpc())return; cafeNpcMenuOpen=true;keys.w=keys.a=keys.s=keys.d=keys.arrowup=keys.arrowdown=keys.arrowleft=keys.arrowright=false;const el=ensureCafeNpcMenu();el.hidden=false;}
+function closeCafeNpcMenu(){cafeNpcMenuOpen=false;const el=document.getElementById('cafeNpcMenu');if(el)el.hidden=true;}
+function cafeInteract(){
+  if(mode==='world'){enter();return}
+  if(mode==='cafe'&&nearCafeNpc()){openCafeNpcMenu();return}
+  if(nearIndoorExit()){exit();return}
+}
+
+// Intercept E before the older global handler so E only exits beside the indoor door.
+window.addEventListener('keydown',e=>{
+  if(e.target?.matches?.('input, textarea, select, [contenteditable=\"true\"]'))return;
+  if(e.key.toLowerCase()==='e'&&!chatActive){e.preventDefault();e.stopImmediatePropagation();if(!cafeNpcMenuOpen)cafeInteract();return}
+  if(cafeNpcMenuOpen){
+    if(e.key==='Escape'){e.preventDefault();e.stopImmediatePropagation();closeCafeNpcMenu();return}
+    const map={'1':'cozy','2':'garden','3':'library','4':'warm'};if(map[e.key]){e.preventDefault();e.stopImmediatePropagation();cafeStyle=map[e.key];closeCafeNpcMenu();}
+  }
+},true);
+
+// Replace the old mobile action behavior with the same contextual interaction.
+const v27Action=document.getElementById('mobileActionBtn');
+v27Action?.addEventListener('pointerdown',e=>{e.preventDefault();e.stopImmediatePropagation();startBgm();if(chatActive){closeChat();return}if(!cafeNpcMenuOpen)cafeInteract();},true);
+
+// Context-sensitive prompt inside buildings.
+const drawV27Base=draw;
+draw=function(){
+  drawV27Base();
+  if(mode==='cafe'){
+    if(nearCafeNpc()){
+      RR(385,474,190,48,6,'rgba(54,43,34,.95)');RR(397,483,28,28,4,'#f5df9c');T('E',411,497,16,C.ink,'center',900);T('카페지기와 대화',493,497,14,'#fff7e6','center',800);
+    }else if(nearIndoorExit()){
+      RR(410,486,140,40,5,'rgba(54,43,34,.95)');RR(422,492,28,28,4,'#f5df9c');T('E',436,506,16,C.ink,'center',900);T('나가기',500,506,15,'#fff7e6','center',800);
+    }
+  }else if(mode!=='world'&&nearIndoorExit()){
+    RR(410,486,140,40,5,'rgba(54,43,34,.95)');RR(422,492,28,28,4,'#f5df9c');T('E',436,506,16,C.ink,'center',900);T('나가기',500,506,15,'#fff7e6','center',800);
+  }
+};
+ensureCafeNpcMenu();
