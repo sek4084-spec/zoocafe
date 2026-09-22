@@ -61,13 +61,13 @@ app.get('*',(req,res)=>res.sendFile(path.join(__dirname,'index.html')));
 const server=app.listen(PORT, '0.0.0.0', ()=>console.log(`ZOO:CAFE Online Multiplayer running on port ${PORT}`));
 const wss=new WebSocketServer({server});
 const clients=new Map();
-const validModes=new Set(['world','cafe']);
+const validModes=new Set(['world','cafe','bookshop','workshop','lodge']);
 const wsSend=(ws,obj)=>{if(ws.readyState===1)ws.send(JSON.stringify(obj));};
 function roomPlayers(mode){return [...clients.values()].filter(c=>c.authed&&c.mode===mode).map(c=>({id:c.user.id,nickname:c.user.nickname,x:c.x,y:c.y,dir:c.dir,frame:c.frame,moving:c.moving,mode:c.mode}));}
 function broadcastRoom(mode,obj,except=null){const raw=JSON.stringify(obj);for(const [ws,c] of clients)if(ws!==except&&c.authed&&c.mode===mode&&ws.readyState===1)ws.send(raw);}
 function syncRoom(mode){const packet={type:'roster',mode,players:roomPlayers(mode)};for(const [ws,c] of clients)if(c.authed&&c.mode===mode)wsSend(ws,packet);}
 wss.on('connection',ws=>{
-  const c={authed:false,user:null,mode:'world',x:960,y:510,dir:'down',frame:2,moving:false}; clients.set(ws,c);
+  const c={authed:false,user:null,mode:'world',x:1430,y:980,dir:'down',frame:2,moving:false}; clients.set(ws,c);
   ws.on('message',buf=>{let m;try{m=JSON.parse(String(buf))}catch{return}
     if(!c.authed){
       if(m.type!=='auth'||typeof m.token!=='string')return ws.close(1008,'auth required');
@@ -76,7 +76,7 @@ wss.on('connection',ws=>{
     }
     if(m.type==='state'){
       const old=c.mode, next=validModes.has(m.mode)?m.mode:c.mode;c.mode=next;
-      const maxX=next==='world'?1920:960,maxY=next==='world'?1120:540;
+      const maxX=next==='world'?2880:960,maxY=next==='world'?1800:540;
       c.x=Math.max(0,Math.min(maxX,Number(m.x)||0));c.y=Math.max(0,Math.min(maxY,Number(m.y)||0));
       c.dir=['up','down','left','right'].includes(m.dir)?m.dir:'down';c.frame=[1,2,3].includes(m.frame)?m.frame:2;c.moving=!!m.moving;
       if(old!==next){syncRoom(old);syncRoom(next)}

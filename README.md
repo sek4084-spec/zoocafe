@@ -1,3 +1,5 @@
+# ZOO:CAFE v21 — Grand Plaza
+
 # ZOO:CAFE Online v13 — 인터넷 배포 준비 버전
 
 ## 로컬 실행
@@ -29,3 +31,14 @@
 - Replaceable wooden bridge PNG asset
 - River/waterfall area now uses more layered environmental props
 - Existing login, multiplayer, chat, rooms, and BGM remain intact
+
+
+## v21 변경사항
+- 월드 크기 1920×1120 → 2880×1800 확장
+- 캐릭터를 따라가는 기존 카메라 시스템을 대형 맵에 적용
+- 폭포 → 개울 → 하단 연못/강으로 이어지는 물 공간
+- 개울을 건너는 나무다리
+- 중앙 ZOO:CAFE 광장/정원/테라스
+- 오른쪽 숲길과 터널형 입구
+- 바람에 흔들리는 나무·풀, 움직이는 물·폭포·오리 유지
+- 기존 로그인/채팅/WebSocket 멀티플레이 구조 유지

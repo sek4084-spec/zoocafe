@@ -7,8 +7,9 @@ const interaction=document.getElementById('interaction'),interactionText=documen
 const chatPanel=document.getElementById('chatPanel'),chatLog=document.getElementById('chatLog'),chatInputWrap=document.getElementById('chatInputWrap'),chatInput=document.getElementById('chatInput');
 let chatActive=false,chatMessages=[],bubble={text:'',until:0};
 const remotePlayers=new Map(), remoteBubbles=new Map();
-const W=canvas.width,H=canvas.height,WORLD_W=1920,WORLD_H=1120,SPEED=3.05,PS=54,PH=PS/2,SPRITE_W=66,SPRITE_H=78;
-const keys=Object.create(null),imgs={};let ready=false,loaded=0,last=performance.now(),mode='world',cooldown=0,waterT=0;
+const W=canvas.width,H=canvas.height,WORLD_W=2880,WORLD_H=1800,SPEED=3.05,PS=54,PH=PS/2,SPRITE_W=66,SPRITE_H=78;
+const keys=Object.create(null),imgs={};
+const mobileMove={x:0,y:0,active:false};let ready=false,loaded=0,last=performance.now(),mode='world',cooldown=0,waterT=0;
 const cityBgm=document.getElementById('cityBgm');
 const cafeBgm=document.getElementById('cafeBgm');
 let bgmStarted=false;
@@ -24,10 +25,10 @@ function syncBgm(){
 }
 function startBgm(){if(bgmStarted)return;bgmStarted=true;syncBgm();}
 for(const d of ['down','left','right','up'])for(const f of [1,2,3]){const im=new Image();im.src=`images/mung-saja-${d}-${f}.png`;im.onload=()=>{if(++loaded===12){ready=true;requestAnimationFrame(loop)}};imgs[`${d}-${f}`]=im}
-let player={x:960,y:510,dir:'down',frame:2,t:0,moving:false}, cafePlayer={x:480,y:465,dir:'down',frame:2,t:0,moving:false};
+let player={x:1430,y:980,dir:'down',frame:2,t:0,moving:false}, cafePlayer={x:480,y:465,dir:'down',frame:2,t:0,moving:false};
 let camera={x:player.x-W/2,y:player.y-H/2};
-const cafe={x:790,y:120,w:340,h:235,door:{x:942,y:305,w:36,h:50}};
-const worldSolids=[{x:790,y:120,w:340,h:185}];
+const cafe={x:1260,y:430,w:340,h:235,door:{x:1412,y:615,w:36,h:50}};
+const worldSolids=[{x:1260,y:430,w:340,h:185}];
 const cafeSolids=[{x:0,y:0,w:960,h:236},{x:286,y:132,w:388,h:86},{x:82,y:344,w:160,h:92},{x:368,y:333,w:224,h:72},{x:752,y:350,w:122,h:74},{x:868,y:245,w:78,h:112}];
 const C={ink:'#4b3429',ink2:'#654637',grass:'#86c968',grass2:'#70b65a',grass3:'#a5dc79',path:'#dfbd80',path2:'#cfa66a',wood:'#a66f4c',wood2:'#8a583d',cream:'#f2ddb0',wall:'#efd9ad',green:'#5f8550',leaf:'#4f8a46',leaf2:'#78ad50',leaf3:'#a3ce65'};
 function clamp(v,a,b){return Math.max(a,Math.min(b,v))}function hit(a,b){return a.x<b.x+b.w&&a.x+a.w>b.x&&a.y<b.y+b.h&&a.y+a.h>b.y}
@@ -76,7 +77,9 @@ R(338,292,285,142,'#d7c096','#aa8f65',5);R(349,303,263,120,'#e5d1a9');R(382,337,
 ctx.fillStyle='#8b593b';ctx.beginPath();ctx.ellipse(800,371,61,38,0,0,Math.PI*2);ctx.fill();ctx.strokeStyle=C.ink;ctx.lineWidth=5;ctx.stroke();R(796,405,8,26,C.ink);chair(742,340);chair(824,340);T('☕',800,368,14,'#f6e2bf','center');pot(700,430,.8);RR(700,472,135,45,3,'#52714b','#3f573b',4);T('WELCOME',767,493,14,'#d8d89c','center',900);}
 function sprite(p,x,y){const im=imgs[`${p.dir}-${p.frame}`];if(!im)return;shadow(x,y+29,22,7,.17);ctx.drawImage(im,Math.round(x-SPRITE_W/2),Math.round(y-SPRITE_H/2),SPRITE_W,SPRITE_H)}
 function animate(p,m){p.moving=m;if(m){if(++p.t>=6){p.t=0;p.frame=p.frame===3?1:p.frame+1}}else{p.t=0;p.frame=2}}
-function input(p){let dx=0,dy=0,m=false;if(chatActive)return[0,0,false];if(keys.w||keys.arrowup){dy=-SPEED;p.dir='up';m=true}if(keys.s||keys.arrowdown){dy=SPEED;p.dir='down';m=true}if(keys.a||keys.arrowleft){dx=-SPEED;p.dir='left';m=true}if(keys.d||keys.arrowright){dx=SPEED;p.dir='right';m=true}if(dx&&dy){dx*=.7071;dy*=.7071}return[dx,dy,m]}
+function input(p){let dx=0,dy=0,m=false;if(chatActive)return[0,0,false];
+if(mobileMove.active){dx=mobileMove.x*SPEED;dy=mobileMove.y*SPEED;m=Math.hypot(mobileMove.x,mobileMove.y)>.08;if(m){if(Math.abs(mobileMove.x)>Math.abs(mobileMove.y))p.dir=mobileMove.x<0?'left':'right';else p.dir=mobileMove.y<0?'up':'down'}return[dx,dy,m]}
+if(keys.w||keys.arrowup){dy=-SPEED;p.dir='up';m=true}if(keys.s||keys.arrowdown){dy=SPEED;p.dir='down';m=true}if(keys.a||keys.arrowleft){dx=-SPEED;p.dir='left';m=true}if(keys.d||keys.arrowright){dx=SPEED;p.dir='right';m=true}if(dx&&dy){dx*=.7071;dy*=.7071}return[dx,dy,m]}
 function moveWorld(){let[dx,dy,m]=input(player),nx=clamp(player.x+dx,PH,WORLD_W-PH),ny=clamp(player.y+dy,PH,WORLD_H-PH),b={x:nx-16,y:ny-10,w:32,h:34};if(!worldSolids.some(o=>hit(b,o))){player.x=nx;player.y=ny}animate(player,m)}
 function moveCafe(){let[dx,dy,m]=input(cafePlayer),nx=clamp(cafePlayer.x+dx,PH,W-PH),ny=clamp(cafePlayer.y+dy,255,H-PH),b={x:nx-15,y:ny-9,w:30,h:32};if(!cafeSolids.some(o=>hit(b,o))){cafePlayer.x=nx;cafePlayer.y=ny}else{let bx={x:nx-15,y:cafePlayer.y-9,w:30,h:32},by={x:cafePlayer.x-15,y:ny-9,w:30,h:32};if(!cafeSolids.some(o=>hit(bx,o)))cafePlayer.x=nx;if(!cafeSolids.some(o=>hit(by,o)))cafePlayer.y=ny}animate(cafePlayer,m)}
 function updateCamera(dt){const dz={l:330,r:630,t:185,b:355};let tx=camera.x,ty=camera.y,sx=player.x-camera.x,sy=player.y-camera.y;if(sx<dz.l)tx=player.x-dz.l;if(sx>dz.r)tx=player.x-dz.r;if(sy<dz.t)ty=player.y-dz.t;if(sy>dz.b)ty=player.y-dz.b;let k=Math.min(1,dt*8);camera.x+=(tx-camera.x)*k;camera.y+=(ty-camera.y)*k;camera.x=clamp(camera.x,0,WORLD_W-W);camera.y=clamp(camera.y,0,WORLD_H-H)}
@@ -359,3 +362,194 @@ function cafeExteriorRich(){
   }
 }
 
+
+
+/* ================================================================
+   ZOO:CAFE v21 — GRAND PLAZA / LARGE CAMERA WORLD
+   Large exploration map built from the asset system: café garden,
+   waterfall creek, bridge, forest lanes, pond and animated wildlife.
+   ================================================================ */
+function drawV21Path(x,y,w,h,vertical=false){
+  const path=ZA?.pick(ZA.manifest.terrain.path);
+  if(!drawAssetTiled(path,x,y,w,h,32)){R(x,y,w,h,'#c7a264');pathTexture(x,y,w,h,vertical?43:17)}
+}
+function drawV21Stream(){
+  // upper waterfall -> winding creek -> lower pond/river
+  assetWaterfall(250,70,150,300);
+  assetWater(205,350,240,960);
+  for(let y=370;y<1300;y+=70){
+    assetShoreRocks(202,y,.72); assetShoreRocks(448,y+24,.72);
+    if((y/70|0)%2===0){assetReeds(226,y+28,(y/70|0)%2,y*.01);assetReeds(425,y+48,1,y*.013)}
+  }
+  assetWater(0,1300,1040,500);
+  for(let x=20;x<1020;x+=96){assetShoreRocks(x,1302,.78); if((x/96|0)%2)assetReeds(x+35,1335,0,x*.01)}
+  // bridge across the creek
+  if(!assetBridge(325,850)){R(245,810,160,80,'#85573c','#4b3428',5)}
+  // water life
+  for(const [x,y,v] of [[270,510,0],[385,610,1],[260,1010,1],[390,1170,0],[180,1450,0],[520,1510,1],[780,1410,0]])assetLily(x,y,v);
+  const ducks=[[315,470,.3],[345,720,1.5],[300,1080,2.6],[250,1450,3.7],[610,1530,5.1]];
+  for(const [x,y,p] of ducks)assetDuck(x+Math.sin(waterT*.35+p)*24,y,p);
+}
+function drawV21Forest(){
+  const trees=[];
+  // top forest wall
+  for(let x=60,i=0;x<WORLD_W-40;x+=125,i++)trees.push([x,105,1.2,i*.45]);
+  // left creek forest and right deep forest
+  for(let y=300,i=0;y<1260;y+=145,i++){trees.push([80,y,1.12,i*.6]);trees.push([540,y+45,1.0,i*.7]);trees.push([2440,y,1.2,i*.5]);trees.push([2710,y+60,1.15,i*.55]);}
+  // southern grove
+  for(let x=1180,i=0;x<2740;x+=155,i++)trees.push([x,1600+(i%2)*65,1.18,i*.4]);
+  trees.forEach((a,i)=>assetTree(a[0],a[1],a[2],i%3,a[3]));
+  // understory
+  for(let i=0;i<38;i++){const x=hash2(i,401)*WORLD_W,y=170+hash2(i,607)*1420;if(x>1100&&x<1850&&y>350&&y<1100)continue;assetBush(x,y,.65+hash2(i,90)*.35)}
+}
+function drawV21Garden(){
+  // café plaza and terrace
+  drawV21Path(1080,690,700,170,false);
+  drawV21Path(1370,0,120,1320,true);
+  drawV21Path(760,790,1620,110,false);
+  // small stepping route toward pond
+  for(let i=0;i<8;i++)RR(1180+i*92,1110+(i%2)*8,70,34,10,'#d9bb82','#9d7c55',3);
+  // garden boundaries and benches
+  fence(1020,745,5);fence(1780,745,5);fence(1080,1030,5);fence(1840,1030,5);
+  bench(1030,920);bench(1840,920);bench(1640,1130);
+  lamp(1160,850);lamp(1710,850);lamp(1290,1080);lamp(1770,1080);
+  sign(970,845,'CAFE');sign(1900,845,'FOREST');sign(1060,1180,'POND');
+  // flower beds
+  for(let i=0;i<26;i++){
+    const side=i%2?-1:1, x=1430+side*(220+hash2(i,33)*300), y=930+hash2(i,72)*250;
+    assetFlower(x,y,i%3); if(i%3===0)assetGrassTuft(x+14,y+8,i%2,i*.4);
+  }
+  cafeExteriorRich();
+}
+function drawV21RightForestPath(){
+  drawV21Path(2120,620,150,760,true);
+  drawV21Path(2120,620,520,110,false);
+  // forest tunnel arch made from dense trees and rocks
+  assetRock(2310,620,1.4);assetRock(2425,620,1.25);
+  assetTree(2320,585,1.35,1,2);assetTree(2425,585,1.35,2,3);
+  RR(2342,602,64,82,30,'#273a2d','#49382c',6);
+  T('숲길',2374,705,12,'#f3ddb0','center',900);
+  for(let i=0;i<6;i++){assetFlower(2050+i*95,760+(i%2)*22,i%3);assetGrassTuft(2080+i*92,735,i%2,i)}
+}
+function drawWorld(){
+  // 1) meadow tiles across the full 2880x1800 world
+  const grasses=ZA?.manifest.terrain.grass;
+  if(grasses){for(let y=0;y<WORLD_H;y+=32)for(let x=0;x<WORLD_W;x+=32){const im=ZA.pick(grasses,Math.floor(hash2(x,y)*grasses.length));if(im)ctx.drawImage(im,x,y,32,32)}}else R(0,0,WORLD_W,WORLD_H,'#72b84f');
+  // subtle forest horizon
+  R(0,0,WORLD_W,55,'#396f3b');for(let x=0;x<WORLD_W;x+=40){px(x,42,27,16,'#4f8f43');px(x+15,34,22,17,'#5d9f48')}
+  // 2) environmental zones
+  drawV21Stream();
+  drawV21Forest();
+  drawV21Garden();
+  drawV21RightForestPath();
+  // 3) meadow detail kept sparse around roads
+  for(let i=0;i<72;i++){
+    const x=55+hash2(i,31)*(WORLD_W-110),y=170+hash2(i,77)*(WORLD_H-330);
+    if((x>1030&&x<1900&&y>360&&y<1250)||(x>180&&x<500&&y>300))continue;
+    assetFlower(x,y,i%3);
+  }
+  for(let i=0;i<60;i++){
+    const x=45+hash2(i,114)*(WORLD_W-90),y=160+hash2(i,219)*(WORLD_H-300);
+    assetGrassTuft(x,y,i%2,i*.37);
+  }
+  // rocks and rest points
+  [[720,430,.9],[850,1190,1],[1980,420,.8],[2550,1180,1.1],[1160,1450,.9],[2050,1480,1]].forEach(a=>assetRock(...a));
+  bench(720,690);bench(2500,850);lamp(830,770);lamp(2300,850);
+}
+
+/* ================================================================
+   ZOO:CAFE v22 — THREE ENTERABLE BUILDINGS
+   Adds three distinct exterior buildings and blank multiplayer rooms.
+   ================================================================ */
+const extraBuildings=[
+  {id:'bookshop',name:'숲속 책방',x:690,y:1120,w:300,h:210,door:{x:824,y:1270,w:34,h:54},accent:'#7e4f39',roof:'#4f3b35',wall:'#e4c98f'},
+  {id:'workshop',name:'공방',x:1880,y:1080,w:320,h:220,door:{x:2023,y:1238,w:34,h:56},accent:'#5f7450',roof:'#49604a',wall:'#d9c89a'},
+  {id:'lodge',name:'동물회관',x:2310,y:1260,w:350,h:235,door:{x:2468,y:1435,w:36,h:58},accent:'#8a5d3f',roof:'#694536',wall:'#e2c48e'}
+];
+for(const b of extraBuildings)worldSolids.push({x:b.x,y:b.y,w:b.w,h:b.h-48});
+function drawExtraBuilding(b,kind){
+  shadow(b.x+b.w/2,b.y+b.h+12,b.w*.48,17,.16);
+  // stone foundation + timber body
+  R(b.x+8,b.y+18,b.w-16,b.h-18,b.wall,'#49342b',6);
+  for(let x=b.x+18;x<b.x+b.w-18;x+=42)R(x,b.y+b.h-24,28,16,'#b99a69');
+  // deep roof gives each building a stronger silhouette
+  if(kind===0){
+    ctx.fillStyle=b.roof;ctx.beginPath();ctx.moveTo(b.x-18,b.y+34);ctx.lineTo(b.x+45,b.y-30);ctx.lineTo(b.x+b.w-42,b.y-30);ctx.lineTo(b.x+b.w+18,b.y+34);ctx.closePath();ctx.fill();ctx.strokeStyle='#3c2b25';ctx.lineWidth=7;ctx.stroke();
+  }else if(kind===1){
+    R(b.x-16,b.y-25,b.w+32,68,b.roof,'#3c3329',7);for(let x=b.x-7;x<b.x+b.w+5;x+=32)R(x,b.y-18,21,52,kind===1?'#587153':'#7c513c');
+  }else{
+    ctx.fillStyle=b.roof;ctx.beginPath();ctx.moveTo(b.x-22,b.y+38);ctx.lineTo(b.x+b.w/2,b.y-48);ctx.lineTo(b.x+b.w+22,b.y+38);ctx.closePath();ctx.fill();ctx.strokeStyle='#422e27';ctx.lineWidth=8;ctx.stroke();
+  }
+  // signboard
+  RR(b.x+55,b.y+42,b.w-110,48,5,'#f1d79b','#51372c',5);T(b.name,b.x+b.w/2,b.y+66,kind===2?20:21,'#493329','center',900);
+  // timber framing
+  R(b.x+20,b.y+96,10,b.h-118,b.accent);R(b.x+b.w-30,b.y+96,10,b.h-118,b.accent);R(b.x+30,b.y+105,b.w-60,8,b.accent);
+  // windows
+  for(const wx of [b.x+48,b.x+b.w-102]){R(wx,b.y+122,54,52,'#4b392f','#3b2a24',5);R(wx+6,b.y+128,42,40,'#91b9ae');R(wx+25,b.y+128,4,40,'#4a392f');R(wx+6,b.y+146,42,4,'#4a392f')}
+  // entrance
+  R(b.door.x-7,b.door.y-12,b.door.w+14,b.door.h+12,'#4a3329');R(b.door.x,b.door.y,b.door.w,b.door.h,b.accent);R(b.door.x+7,b.door.y+8,b.door.w-14,24,'#9dc4b8');px(b.door.x+b.door.w-9,b.door.y+38,4,4,'#f4d36e');
+  // individual decoration
+  if(kind===0){T('BOOKS · TEA',b.x+b.w/2,b.y+101,10,'#76533c','center',800);pot(b.x+26,b.y+b.h-20,.8);pot(b.x+b.w-26,b.y+b.h-20,.8)}
+  if(kind===1){RR(b.x+b.w-72,b.y+74,48,30,3,'#3e4637','#49352b',4);T('OPEN',b.x+b.w-48,b.y+89,9,'#f1dfb4','center',900);R(b.x+22,b.y+b.h-28,58,14,'#916344')}
+  if(kind===2){for(let i=0;i<5;i++)flower(b.x+70+i*52,b.y+b.h-8,i%2?'#ffd6de':'#fff0ad');T('WELCOME',b.x+b.w/2,b.y+103,10,'#76533c','center',800)}
+}
+const drawWorldV21Base=drawWorld;
+drawWorld=function(){drawWorldV21Base();extraBuildings.forEach((b,i)=>drawExtraBuilding(b,i));};
+function nearestEntrance(){
+  let best=null,dist=Infinity;
+  const all=[{id:'cafe',name:'ZOO:CAFE',door:cafe.door},...extraBuildings];
+  for(const b of all){const d=Math.hypot(player.x-(b.door.x+b.door.w/2),player.y-(b.door.y+b.door.h));if(d<dist){dist=d;best=b}}
+  return dist<92?best:null;
+}
+nearCafe=function(){return !!nearestEntrance();};
+enter=function(){
+  if(mode!=='world'||cooldown>0)return;const b=nearestEntrance();if(!b)return;
+  mode=b.id;syncBgm();cafePlayer={x:480,y:455,dir:'up',frame:2,t:0,moving:false};cooldown=.25;
+};
+exit=function(){
+  if(mode==='world'||cooldown>0)return;
+  const b=mode==='cafe'?{door:cafe.door}:extraBuildings.find(v=>v.id===mode);mode='world';syncBgm();
+  if(b){player.x=b.door.x+b.door.w/2;player.y=b.door.y+b.door.h+55}player.dir='down';camera.x=clamp(player.x-W/2,0,WORLD_W-W);camera.y=clamp(player.y-H/2,0,WORLD_H-H);cooldown=.28;
+};
+function drawBlankInterior(room){
+  const b=extraBuildings.find(v=>v.id===room);const accent=b?.accent||'#795039';
+  R(0,0,W,H,'#e9d6ac');R(0,0,W,205,'#e6d1a4');R(0,205,W,8,'#6b4935');R(0,213,W,H-213,'#b77e57');
+  for(let y=220;y<H;y+=30){R(0,y,W,2,'rgba(100,64,45,.22)');for(let x=(y%60?30:0);x<W;x+=150)R(x,y,2,30,'rgba(100,64,45,.12)')}
+  // empty room shell ready for future furnishing
+  R(50,48,860,118,'#d8bd8b','#684735',5);RR(315,72,330,62,5,'#f2d99f','#5b3d30',5);T(b?.name||'건물',480,103,28,'#4a3329','center',900);
+  for(const x of [105,750]){R(x,78,105,75,'#523a30','#3d2b25',5);R(x+8,86,89,59,'#9bc1b5');R(x+50,86,5,59,'#4b392f');R(x+8,113,89,5,'#4b392f')}
+  R(430,448,100,72,accent,'#493229',6);R(446,460,68,38,'#9bc1b5');T('E  나가기',480,505,15,'#fff4d7','center',900);
+  T('아직 비어 있는 공간입니다 · 다음 단계에서 꾸밀 수 있어요',480,188,13,'#7a5a45','center',700);
+}
+const moveIndoor=moveCafe;
+moveCafe=function(){moveIndoor();};
+draw=function(){
+  ctx.clearRect(0,0,W,H);
+  if(mode==='world'){
+    ctx.save();ctx.translate(-Math.round(camera.x),-Math.round(camera.y));drawWorld();sprite(player,player.x,player.y);for(const r of remotePlayers.values())if(r.mode==='world')drawRemote(r,0,0);ctx.restore();
+    if(performance.now()<bubble.until)bubbleText(bubble.text,player.x-camera.x,player.y-camera.y);
+    const n=nearestEntrance();interaction.hidden=chatActive||!n;interactionText.textContent=n?`${n.name} 들어가기`:'들어가기';
+  }else{
+    if(mode==='cafe')drawCafe();else drawBlankInterior(mode);
+    sprite(cafePlayer,cafePlayer.x,cafePlayer.y);for(const r of remotePlayers.values())if(r.mode===mode)drawRemote(r,0,0);
+    if(performance.now()<bubble.until)bubbleText(bubble.text,cafePlayer.x,cafePlayer.y);interaction.hidden=true;
+    RR(420,486,120,40,5,'rgba(54,43,34,.94)');RR(432,492,28,28,4,'#f5df9c');T('E',446,506,16,C.ink,'center',900);T('나가기',500,506,15,'#fff7e6','center',800);
+  }
+};
+window.ZooCafeGame.getState=function(){const p=mode==='world'?player:cafePlayer;return {mode,x:p.x,y:p.y,dir:p.dir,frame:p.frame,moving:p.moving}};
+
+// v23 mobile-first controls: analog virtual joystick + touch interaction/chat.
+(function setupMobileControls(){
+  const stick=document.getElementById('virtualStick'),knob=document.getElementById('stickKnob');
+  const action=document.getElementById('mobileActionBtn'),chatBtn=document.getElementById('mobileChatBtn');
+  if(!stick||!knob||!action)return;
+  let pointer=null;
+  function setStick(e){const r=stick.getBoundingClientRect(),cx=r.left+r.width/2,cy=r.top+r.height/2,max=r.width*.31;let x=e.clientX-cx,y=e.clientY-cy;const d=Math.hypot(x,y)||1;if(d>max){x=x/d*max;y=y/d*max}knob.style.transform=`translate(${x}px,${y}px)`;mobileMove.x=x/max;mobileMove.y=y/max;mobileMove.active=true;startBgm()}
+  function release(e){if(pointer!==null&&e&&e.pointerId!==pointer)return;pointer=null;mobileMove.x=mobileMove.y=0;mobileMove.active=false;knob.style.transform='translate(0px,0px)'}
+  stick.addEventListener('pointerdown',e=>{pointer=e.pointerId;stick.setPointerCapture?.(e.pointerId);setStick(e);e.preventDefault()});
+  stick.addEventListener('pointermove',e=>{if(e.pointerId===pointer){setStick(e);e.preventDefault()}});
+  stick.addEventListener('pointerup',release);stick.addEventListener('pointercancel',release);stick.addEventListener('lostpointercapture',release);
+  action.addEventListener('pointerdown',e=>{e.preventDefault();startBgm();if(chatActive){closeChat();return}mode==='world'?enter():exit()});
+  chatBtn?.addEventListener('pointerdown',e=>{e.preventDefault();chatActive?closeChat():openChat()});
+  document.addEventListener('visibilitychange',()=>{if(document.hidden)release()});
+})();
