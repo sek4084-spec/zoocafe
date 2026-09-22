@@ -47,6 +47,13 @@ function lamp(x,y){shadow(x,y+53,14,5,.12);px(x-4,y,8,54,'#3f3b35');px(x-9,y-10,
 function sign(x,y,label){shadow(x+33,y+50,24,5,.1);RR(x,y,67,34,3,'#a66e49','#5c3d2d',4);T(label,x+33,y+17,10,'#fff0c9','center',900);px(x+29,y+34,8,31,'#674531')}
 function pot(x,y,s=1){px(x-10*s,y,20*s,13*s,'#b4734d');px(x-13*s,y-3*s,26*s,6*s,'#754832');for(const [dx,dy,c] of [[-9,-12,C.leaf],[8,-13,C.leaf],[-2,-23,C.leaf2]]){ctx.fillStyle=c;ctx.beginPath();ctx.ellipse(x+dx*s,y+dy*s,8*s,13*s,dx*.02,0,Math.PI*2);ctx.fill()}}
 function cafeExterior(){shadow(cafe.x+cafe.w/2,cafe.y+cafe.h+18,190,18,.14);R(cafe.x,cafe.y,cafe.w,cafe.h,'#f2dfb8',C.ink,7);R(cafe.x-18,cafe.y-62,cafe.w+36,72,'#805239',C.ink,7);for(let x=cafe.x-8;x<cafe.x+cafe.w+8;x+=30){R(x,cafe.y-55,20,50,'#986143');R(x+20,cafe.y-55,10,50,'#754a35')}RR(cafe.x+58,cafe.y+18,224,48,4,'#f8e5b6',C.ink,5);T('☕  ZOO:CAFE',cafe.x+170,cafe.y+43,23,C.ink,'center',900);R(cafe.x+24,cafe.y+80,cafe.w-48,29,'#fff0d0',C.ink,3);for(let i=0;i<10;i++)if(i%2)R(cafe.x+24+i*29,cafe.y+80,29,29,'#d88f68');for(const xx of [cafe.x+32,cafe.x+252]){R(xx,cafe.y+118,48,58,'#a9d8e2',C.ink,5);R(xx+21,cafe.y+118,5,58,C.ink);R(xx,cafe.y+144,48,5,C.ink)}R(cafe.door.x,cafe.door.y,cafe.door.w,cafe.door.h,'#704830',C.ink,5);R(cafe.door.x+7,cafe.door.y+8,22,28,'#9b6746');px(cafe.door.x+25,cafe.door.y+27,4,4,'#f0c85e');pot(cafe.x+12,cafe.y+178,.9);pot(cafe.x+cafe.w-14,cafe.y+178,.9);RR(cafe.x+cafe.w+18,cafe.y+128,76,61,3,'#4b3a31','#684635',5);T('OPEN',cafe.x+cafe.w+56,cafe.y+148,13,'#f6dfb1','center',900);T('coffee',cafe.x+cafe.w+56,cafe.y+169,9,'#f6dfb1','center',700)}
+
+function assetProp(path,x,y,w,h,anchorX=.5,anchorY=1){const im=ZA?.get(path);return assetSprite(im,x,y,w,h,anchorX,anchorY)}
+function assetLily(x,y,variant=0){const im=ZA?.pick(ZA.manifest.waterDecor?.lilyPad,variant);if(im)assetSprite(im,x,y+10,32,32,.5,.5)}
+function assetReeds(x,y,variant=0,phase=0){const im=ZA?.pick(ZA.manifest.waterDecor?.reeds,variant);if(!im)return;const sway=Math.sin(waterT*1.7+phase)*1.2;assetSprite(im,x+sway,y+14,32,32,.5,1)}
+function assetShoreRocks(x,y,s=1){const im=ZA?.pick(ZA.manifest.waterDecor?.shoreRocks);if(im)assetSprite(im,x,y+8,64*s,32*s,.5,1)}
+function assetBridge(x,y){const path=ZA?.manifest.props?.bridge,im=path&&ZA.get(path);if(im){shadow(x,y+34,76,12,.18);assetSprite(im,x,y+40,160,96,.5,1);return true}return false}
+
 function drawWorld(){R(0,0,WORLD_W,WORLD_H,C.grass);for(let y=18;y<WORLD_H;y+=48)for(let x=20;x<WORLD_W;x+=52){let q=(x*7+y*11)%17;if(q<5){px(x,y,3,3,C.grass3);px(x+8,y+5,2,2,C.grass2)}}R(0,405,WORLD_W,126,C.path);R(0,409,WORLD_W,6,'#efd19a');R(0,520,WORLD_W,7,C.path2);R(742,0,124,WORLD_H,C.path);R(748,0,6,WORLD_H,'#efd19a');R(858,0,7,WORLD_H,C.path2);
 R(0,835,WORLD_W,285,'#55afd0');R(0,835,WORLD_W,10,'#3c8eab');for(let i=0;i<15;i++){let yy=875+(i%3)*64,xx=35+i*126;R(xx,yy,55,4,'#8dd7e8');R(xx+70,yy+24,28,3,'#79c9df')}for(let x=0;x<WORLD_W;x+=42){px(x,825,25,10,'#6da95a');px(x+10,818,20,9,'#87bf67')}
 R(742,830,124,290,'#8d5c3e',C.ink,6);for(let y=838;y<1110;y+=27)R(751,y,106,19,'#ad734a');R(750,830,9,290,'#67432f');R(849,830,9,290,'#67432f');
@@ -99,3 +106,256 @@ addEventListener('pointerdown',startBgm,{once:true}); addEventListener('keydown'
 window.ZooCafeAudio={setBgmVolume(v){bgmVolume=Math.max(0,Math.min(1,v));[cityBgm,cafeBgm].forEach(a=>{if(a)a.volume=bgmVolume;});},getBgmVolume(){return bgmVolume;},toggleBgm(on){bgmEnabled=!!on;if(bgmEnabled){bgmStarted=true;syncBgm();}else{[cityBgm,cafeBgm].forEach(a=>{if(a)a.pause();});}}};
 
 window.ZooCafeGame={getState(){const p=mode==='world'?player:cafePlayer;return {mode,x:p.x,y:p.y,dir:p.dir,frame:p.frame,moving:p.moving}},setRoster(list){remotePlayers.clear();const me=window.ZOO_USER?.id;for(const r of list||[])if(r.id!==me)remotePlayers.set(r.id,r)},setRemote(r){if(r&&r.id!==window.ZOO_USER?.id)remotePlayers.set(r.id,r)},remoteChat(m){if(!m||m.id===window.ZOO_USER?.id)return;addChatMessage(m.nickname,m.text);remoteBubbles.set(m.id,{text:m.text,until:performance.now()+4200})},clearRemotes(){remotePlayers.clear();remoteBubbles.clear()}};
+
+/* ================================================================
+   ZOO:CAFE v14 — CLASSIC PIXEL NATURE PASS
+   Hand-drawn canvas pixel world: waterfall, stream, ducks, wind,
+   layered foliage, detailed grass/path, café garden and bridge.
+   ================================================================ */
+const nature={seed:4084,ducks:[{x:235,y:860,p:0},{x:475,y:930,p:1.7},{x:1240,y:890,p:3.1},{x:1570,y:1010,p:4.6}]};
+function hash2(x,y){let n=(x*374761393+y*668265263+nature.seed*69069)|0;n=(n^(n>>13))*1274126177;return ((n^(n>>16))>>>0)/4294967295}
+function pixelGrassPatch(x,y){
+  const q=hash2(x,y); if(q>.76){px(x,y,2,7,'#397c3d');px(x+4,y-3,2,10,'#4f9848');px(x+8,y+1,2,6,'#2f7137')}
+  else if(q>.62){px(x,y,3,3,'#a8d56a');px(x+6,y+4,2,2,'#5da34d')}
+  else if(q>.54){px(x,y,2,2,'#d7d779');px(x+4,y-2,2,2,'#f0e9a1')}
+}
+function detailedTree(x,y,s=1,phase=0){
+  const sway=Math.sin(waterT*1.35+phase+x*.007)*2.2*s;
+  shadow(x,y+45*s,37*s,10*s,.18);
+  // trunk and roots
+  px(x-10*s,y+16*s,20*s,45*s,'#513828');px(x-6*s,y+17*s,12*s,43*s,'#765039');px(x-2*s,y+20*s,5*s,34*s,'#9b6846');
+  px(x-18*s,y+54*s,16*s,6*s,'#513828');px(x+3*s,y+55*s,18*s,6*s,'#513828');
+  // branch silhouettes
+  px(x-23*s+sway,y+8*s,25*s,8*s,'#5e402e');px(x+1*s+sway,y+4*s,26*s,8*s,'#5e402e');
+  const blobs=[[-28,5,22,'#2f6d3b'],[27,7,24,'#2f6d3b'],[-9,-17,29,'#397f40'],[8,-25,24,'#438c45'],[-38,24,19,'#33763d'],[37,25,20,'#33763d'],[-8,22,30,'#4b9146'],[17,16,25,'#438943']];
+  for(const [dx,dy,r,c] of blobs){ctx.fillStyle=c;ctx.beginPath();ctx.arc(x+(dx*s)+sway,y+dy*s,r*s,0,Math.PI*2);ctx.fill()}
+  // blocky leaf clusters/highlights
+  for(let i=0;i<15;i++){let a=hash2(Math.round(x)+i*7,Math.round(y));let dx=(-35+a*70)*s+sway,dy=(-35+hash2(i,Math.round(x))*63)*s;let c=i%3===0?'#9acb58':i%2?'#6eae4e':'#58a048';px(x+dx,y+dy,7*s,5*s,c)}
+  // occasional tiny falling leaf
+  if(((Math.floor(waterT*2)+Math.floor(x))%13)===0){let fy=((waterT*25+phase*17)%70);px(x+34*s+sway,y-5*s+fy,4*s,3*s,'#b6d568')}
+}
+function waterTile(x,y,w,h){
+  R(x,y,w,h,'#3d9fc5');
+  for(let yy=y+12;yy<y+h;yy+=28)for(let xx=x+8;xx<x+w;xx+=54){let off=Math.sin(waterT*2+xx*.03+yy*.02)*7;px(xx+off,yy,25,3,'#74cbe0');px(xx+13+off,yy+5,18,2,'#a8e3eb')}
+}
+function waterfall(x,y,w,h){
+  // dark cliff behind water
+  R(x-18,y-12,w+36,h+32,'#4c5d4c');
+  for(let yy=y-8;yy<y+h+10;yy+=28)for(let xx=x-12;xx<x+w+12;xx+=30){let c=hash2(xx,yy)>.5?'#66715d':'#3f5145';px(xx,yy,25,18,c);px(xx+4,yy+3,14,4,'#7d856d')}
+  R(x,y,w,h,'#55b6d5');
+  for(let i=0;i<7;i++){let xx=x+8+i*(w-16)/7;let shift=(waterT*45+i*17)%28;for(let yy=y-28+shift;yy<y+h;yy+=28){px(xx,yy,5,17,'#9fe3ee');px(xx+5,yy+6,3,13,'#73cbe0')}}
+  // foam
+  for(let i=0;i<10;i++){let xx=x-5+i*(w+10)/9, bob=Math.sin(waterT*4+i)*3;px(xx,y+h-4+bob,15,5,'#d9f5f4');px(xx+5,y+h+3+bob,12,4,'#9de1e9')}
+}
+function duck(x,y,phase=0){
+  const bob=Math.sin(waterT*3+phase)*2,dir=Math.sin(waterT*.35+phase)>0?1:-1;
+  shadow(x,y+10+bob,18,5,.12);ctx.fillStyle='rgba(220,248,247,.65)';ctx.beginPath();ctx.ellipse(x-5*dir,y+10+bob,24,7,0,0,Math.PI*2);ctx.fill();
+  px(x-13,y-6+bob,25,16,'#fff4cf');px(x-8,y-11+bob,16,8,'#fff9dc');px(x+8*dir,y-13+bob,13,13,'#fff7d9');px(x+13*dir,y-15+bob,4,4,'#3d342c');px(x+19*dir,y-9+bob,9*dir,5,'#e8a94d');px(x-7,y-2+bob,11,7,'#e9d6a5');
+  // wake
+  px(x-27*dir,y+14+bob,15,2,'#b8e8eb');px(x-34*dir,y+18+bob,20,2,'#8bd3df');
+}
+function pathTexture(x,y,w,h,seed=0){
+  // Natural worn-earth texture: tiny pebbles, scuffs and grass at the edges.
+  // No large rectangular stepping blocks.
+  for(let yy=y+10;yy<y+h-8;yy+=19){
+    for(let xx=x+12;xx<x+w-8;xx+=27){
+      const q=hash2(Math.floor(xx+seed),Math.floor(yy-seed));
+      if(q>.72){px(xx,yy,5,2,'#b58f58');px(xx+7,yy+2,3,2,'#e0bd7b')}
+      else if(q>.58){px(xx,yy,2,2,'#9f7d50')}
+    }
+  }
+  for(let yy=y+16;yy<y+h;yy+=34){
+    if(hash2(seed,yy)>.45){px(x+3,yy,3,8,'#5d9b47');px(x+w-6,yy+7,3,7,'#4f8f43')}
+  }
+}
+function cafeFootpath(cx,y0,y1){
+  // A soft, irregular dirt trail leading to the café instead of block tiles.
+  const w=92;
+  R(cx-w/2,y0,w,y1-y0,'#c8a365');
+  for(let y=y0;y<y1;y+=22){
+    const edge=Math.round((hash2(y,91)-.5)*8);
+    px(cx-w/2-2+edge,y,7,15,'#72b84f');
+    px(cx+w/2-5-edge,y+8,7,14,'#72b84f');
+  }
+  pathTexture(cx-w/2,y0,w,y1-y0,91);
+}
+function ivyPixelLeaf(x,y,flip=1){
+  // Small angular pixel leaves so the ivy reads as foliage, not green dots.
+  px(x,y,7,4,'#356f3b');px(x+2*flip,y-4,6,5,'#4f9147');px(x+5*flip,y-7,4,4,'#70aa50');
+}
+function cafeExteriorRich(){
+  // ivy backdrop and warm café façade
+  shadow(cafe.x+cafe.w/2,cafe.y+cafe.h+20,205,20,.18);
+  R(cafe.x-14,cafe.y-8,cafe.w+28,cafe.h+18,'#d9bd89','#4d3529',7);
+  R(cafe.x-25,cafe.y-60,cafe.w+50,64,'#5d3e2e','#3f2c24',7);
+  for(let x=cafe.x-16;x<cafe.x+cafe.w+16;x+=28){R(x,cafe.y-52,18,45,(Math.floor(x/28)%2)?'#81563c':'#6e4935')}
+  RR(cafe.x+52,cafe.y+13,236,54,4,'#efd293','#4b3428',5);T('ZOO:CAFE',cafe.x+170,cafe.y+40,24,'#493226','center',900);
+  // windows glow
+  for(const xx of [cafe.x+24,cafe.x+255]){R(xx,cafe.y+92,61,69,'#563b2e','#3e2c24',5);R(xx+7,cafe.y+99,47,55,'#f1c56d');R(xx+10,cafe.y+102,41,49,'#8eb7a4');px(xx+29,cafe.y+100,4,52,'#4b382d');px(xx+8,cafe.y+125,45,4,'#4b382d')}
+  R(cafe.door.x-7,cafe.y+86,50,118,'#51362b','#35251f',5);R(cafe.door.x,cafe.y+96,36,90,'#795039');R(cafe.door.x+7,cafe.y+104,22,36,'#9ac3b4');px(cafe.door.x+27,cafe.y+151,4,4,'#f5d267');
+  // ivy: thin climbing stems + small pixel leaves around the façade edges
+  ctx.strokeStyle='#3e7440';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(cafe.x+8,cafe.y+10);ctx.lineTo(cafe.x+8,cafe.y+82);ctx.lineTo(cafe.x+22,cafe.y+112);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(cafe.x+cafe.w-9,cafe.y+8);ctx.lineTo(cafe.x+cafe.w-10,cafe.y+72);ctx.lineTo(cafe.x+cafe.w-24,cafe.y+104);ctx.stroke();
+  for(let i=0;i<7;i++){ivyPixelLeaf(cafe.x+5+(i%2)*5,cafe.y+17+i*14,i%2?1:-1);ivyPixelLeaf(cafe.x+cafe.w-12-(i%2)*5,cafe.y+14+i*14,i%2?-1:1)}
+  for(let i=0;i<6;i++){ivyPixelLeaf(cafe.x+22+i*19,cafe.y+78+(i%2)*5,i%2?1:-1);ivyPixelLeaf(cafe.x+cafe.w-28-i*18,cafe.y+72+(i%2)*6,i%2?-1:1)}
+  // flower boxes and lamps
+  R(cafe.x+21,cafe.y+160,66,12,'#744832');R(cafe.x+253,cafe.y+160,66,12,'#744832');for(let i=0;i<8;i++){flower(cafe.x+27+i*8,cafe.y+159,i%2?'#ffd5dd':'#fff0b0');flower(cafe.x+259+i*8,cafe.y+159,i%2?'#d7c7ff':'#fff0b0')}
+  lamp(cafe.x-38,cafe.y+117);lamp(cafe.x+cafe.w+38,cafe.y+117);
+  RR(cafe.x+cafe.w+24,cafe.y+132,76,66,4,'#3e3b31','#5b3b2d',5);T('COFFEE',cafe.x+cafe.w+62,cafe.y+150,10,'#f5e4b8','center',900);T('FRIENDS',cafe.x+cafe.w+62,cafe.y+168,9,'#f5e4b8','center',800);T('♥',cafe.x+cafe.w+62,cafe.y+185,12,'#e7b55f','center',900)
+}
+
+function assetProp(path,x,y,w,h,anchorX=.5,anchorY=1){const im=ZA?.get(path);return assetSprite(im,x,y,w,h,anchorX,anchorY)}
+function assetLily(x,y,variant=0){const im=ZA?.pick(ZA.manifest.waterDecor?.lilyPad,variant);if(im)assetSprite(im,x,y+10,32,32,.5,.5)}
+function assetReeds(x,y,variant=0,phase=0){const im=ZA?.pick(ZA.manifest.waterDecor?.reeds,variant);if(!im)return;const sway=Math.sin(waterT*1.7+phase)*1.2;assetSprite(im,x+sway,y+14,32,32,.5,1)}
+function assetShoreRocks(x,y,s=1){const im=ZA?.pick(ZA.manifest.waterDecor?.shoreRocks);if(im)assetSprite(im,x,y+8,64*s,32*s,.5,1)}
+function assetBridge(x,y){const path=ZA?.manifest.props?.bridge,im=path&&ZA.get(path);if(im){shadow(x,y+34,76,12,.18);assetSprite(im,x,y+40,160,96,.5,1);return true}return false}
+
+function drawWorld(){
+  // meadow base with individually scattered pixel detail
+  R(0,0,WORLD_W,WORLD_H,'#72b84f');
+  for(let y=14;y<835;y+=18)for(let x=10;x<WORLD_W;x+=20)pixelGrassPatch(x,y);
+  // darker forest edge / depth
+  R(0,0,WORLD_W,44,'#396f3b');for(let x=0;x<WORLD_W;x+=36){px(x,34,24,14,'#4f8f43');px(x+12,27,20,14,'#5d9f48')}
+  // main worn road: continuous packed earth with subtle pixel texture, no block paving
+  R(0,405,WORLD_W,126,'#caa568');R(0,412,WORLD_W,4,'#dfbf7e');R(0,523,WORLD_W,5,'#aa8755');
+  pathTexture(0,405,WORLD_W,126,17);
+  R(742,0,124,835,'#c7a264');pathTexture(742,0,124,835,43);
+  // soften the crossing so the two dirt paths blend as one natural road
+  R(742,405,124,126,'#c8a466');pathTexture(742,405,124,126,57);
+  // waterfall ravine in upper-left feeding the river
+  waterfall(175,78,118,260);
+  waterTile(110,326,250,510);
+  // banks
+  for(let y=335;y<835;y+=38){rock(112,y,.55);rock(360,y+17,.55);bush(132,y+12,.42);bush(340,y+3,.42)}
+  // broad lower river
+  waterTile(0,835,WORLD_W,285);R(0,835,WORLD_W,8,'#2f7e9c');
+  for(let x=0;x<WORLD_W;x+=42){px(x,825,27,11,'#548f47');px(x+9,817,22,10,'#78b657')}
+  // wooden bridge
+  R(742,830,124,290,'#704832','#493225',6);for(let y=838;y<1110;y+=27){R(751,y,106,19,'#a56b45');px(756,y+4,95,3,'#c08455')}R(750,830,9,290,'#513529');R(849,830,9,290,'#513529');
+  // narrow worn trail to the café
+  cafeFootpath(936,350,815);
+  // dense tree layers with wind animation
+  [[62,120,1.22,.2],[350,205,1.05,1],[505,90,.95,2],[1240,92,1.18,3],[1505,185,1.2,4],[1760,120,1.1,5],[80,575,1.2,6],[430,685,1.05,7],[1160,650,1.12,8],[1435,675,1.28,9],[1660,720,1.05,10],[1810,545,1.2,11],[610,665,.9,12]].forEach(a=>detailedTree(...a));
+  [[500,290,.9],[650,250,.75],[1180,270,.9],[1490,560,1],[965,690,.8],[540,770,.9],[1690,365,.8]].forEach(a=>bush(...a));
+  // flowers / grasses
+  for(let i=0;i<34;i++){let x=35+hash2(i,31)*1840,y=100+hash2(i,77)*690;if(x>720&&x<890)continue;flower(x,y,['#fff0bd','#ffd1dc','#d9ccff','#fff7e0'][i%4])}
+  for(let i=0;i<26;i++){let x=40+hash2(i,14)*1800,y=80+hash2(i,19)*710;grassTuft(x,y)}
+  // garden furniture and village details
+  fence(415,342,5);fence(1180,337,5);fence(1320,615,5);bench(470,350);bench(1230,356);bench(1035,650);lamp(675,370);lamp(1120,365);lamp(1085,650);sign(590,355,'CAFE');sign(1270,580,'GARDEN');rock(675,165,.9);rock(1450,430,.8);
+  cafeExteriorRich();
+  // café terrace
+  R(1130,235,120,8,'#8b5a3d');pot(1150,235,.8);pot(1215,235,.8);
+  // ducks are actual animated world objects
+  for(const d of nature.ducks){let drift=Math.sin(waterT*.42+d.p)*22;duck(d.x+drift,d.y,d.p)}
+  // lily pads
+}
+
+
+/* ================================================================
+   ZOO:CAFE v16 — ASSET RENDERER
+   From here on, map graphics come from /assets. Existing canvas art
+   remains as a fallback while the final ZOO:CAFE tileset is produced.
+   ================================================================ */
+const ZA=window.ZooAssets;
+function assetTileImage(group,index=0){return ZA?.pick(group,index)}
+function drawAssetTiled(im,x,y,w,h,size=32){if(!im)return false;for(let yy=y;yy<y+h;yy+=size)for(let xx=x;xx<x+w;xx+=size){ctx.drawImage(im,0,0,im.width,im.height,Math.round(xx),Math.round(yy),Math.min(size,x+w-xx),Math.min(size,y+h-yy))}return true}
+function assetSprite(im,x,y,w=im?.width,h=im?.height,anchorX=.5,anchorY=1){if(!im)return false;ctx.drawImage(im,Math.round(x-w*anchorX),Math.round(y-h*anchorY),Math.round(w),Math.round(h));return true}
+function assetWater(x,y,w,h){const frames=ZA?.manifest.water.frames;const im=frames&&ZA.pick(frames,Math.floor(waterT*3));if(!drawAssetTiled(im,x,y,w,h,32))waterTile(x,y,w,h)}
+function assetTree(x,y,s=1,variant=0,phase=0){const im=ZA?.pick(ZA.manifest.nature.tree,variant);if(!im){detailedTree(x,y,s,phase);return}const sway=Math.sin(waterT*1.25+phase)*1.5*s;shadow(x,y+2,35*s,9*s,.16);assetSprite(im,x+sway,y+18*s,96*s,128*s,.5,1)}
+function assetBush(x,y,s=1){const im=ZA?.pick(ZA.manifest.nature.bush);if(!im){bush(x,y,s);return}assetSprite(im,x,y+16*s,64*s,48*s,.5,1)}
+function assetRock(x,y,s=1){const im=ZA?.pick(ZA.manifest.nature.rock);if(!im){rock(x,y,s);return}assetSprite(im,x,y+12*s,48*s,36*s,.5,1)}
+function assetFlower(x,y,variant=0){const im=ZA?.pick(ZA.manifest.nature.flower,variant);if(!im){flower(x,y);return}assetSprite(im,x,y+12,32,32,.5,1)}
+function assetGrassTuft(x,y,variant=0,phase=0){const im=ZA?.pick(ZA.manifest.nature.grassTuft,variant);if(!im){grassTuft(x,y);return}const sway=Math.sin(waterT*1.6+phase)*1.1;assetSprite(im,x+sway,y+12,32,32,.5,1)}
+function assetDuck(x,y,phase=0){const im=ZA?.pick(ZA.manifest.animals.duck,Math.floor(waterT*3+phase));if(!im){duck(x,y,phase);return}const bob=Math.sin(waterT*3+phase)*2;assetSprite(im,x,y+18+bob,48,40,.5,1)}
+function assetWaterfall(x,y,w,h){const frames=ZA?.manifest.water.waterfall;const im=frames&&ZA.pick(frames,Math.floor(waterT*5));if(!im){waterfall(x,y,w,h);return}R(x-18,y-12,w+36,h+28,'#4c5d4c');for(let yy=y;yy<y+h;yy+=64)for(let xx=x;xx<x+w;xx+=64)ctx.drawImage(im,xx,yy,Math.min(64,x+w-xx),Math.min(64,y+h-yy))}
+
+function assetProp(path,x,y,w,h,anchorX=.5,anchorY=1){const im=ZA?.get(path);return assetSprite(im,x,y,w,h,anchorX,anchorY)}
+function assetLily(x,y,variant=0){const im=ZA?.pick(ZA.manifest.waterDecor?.lilyPad,variant);if(im)assetSprite(im,x,y+10,32,32,.5,.5)}
+function assetReeds(x,y,variant=0,phase=0){const im=ZA?.pick(ZA.manifest.waterDecor?.reeds,variant);if(!im)return;const sway=Math.sin(waterT*1.7+phase)*1.2;assetSprite(im,x+sway,y+14,32,32,.5,1)}
+function assetShoreRocks(x,y,s=1){const im=ZA?.pick(ZA.manifest.waterDecor?.shoreRocks);if(im)assetSprite(im,x,y+8,64*s,32*s,.5,1)}
+function assetBridge(x,y){const path=ZA?.manifest.props?.bridge,im=path&&ZA.get(path);if(im){shadow(x,y+34,76,12,.18);assetSprite(im,x,y+40,160,96,.5,1);return true}return false}
+
+function drawWorld(){
+  // Ground layer: replace grass PNGs later and the whole map updates automatically.
+  const grasses=ZA?.manifest.terrain.grass;
+  if(grasses){for(let y=0;y<WORLD_H;y+=32)for(let x=0;x<WORLD_W;x+=32){const idx=Math.floor(hash2(x,y)*grasses.length);const im=ZA.pick(grasses,idx);if(im)ctx.drawImage(im,x,y,32,32)}}else R(0,0,WORLD_W,WORLD_H,'#72b84f');
+  R(0,0,WORLD_W,44,'#396f3b');for(let x=0;x<WORLD_W;x+=36){px(x,34,24,14,'#4f8f43');px(x+12,27,20,14,'#5d9f48')}
+  // Roads are now tile assets.
+  const path=ZA?.pick(ZA.manifest.terrain.path);if(!drawAssetTiled(path,0,405,WORLD_W,126,32)){R(0,405,WORLD_W,126,'#caa568');pathTexture(0,405,WORLD_W,126,17)}
+  if(!drawAssetTiled(path,742,0,124,835,32)){R(742,0,124,835,'#c7a264');pathTexture(742,0,124,835,43)}
+  drawAssetTiled(path,742,405,124,126,32);
+  // Animated water assets.
+  assetWaterfall(175,78,118,260);assetWater(110,326,250,510);
+  for(let y=335;y<835;y+=46){assetRock(112,y,.55);assetRock(360,y+17,.55);assetBush(132,y+12,.42);assetBush(340,y+3,.42)}
+  assetWater(0,835,WORLD_W,285);R(0,835,WORLD_W,8,'#2f7e9c');
+  for(let x=0;x<WORLD_W;x+=42){px(x,825,27,11,'#548f47');px(x+9,817,22,10,'#78b657')}
+  // Water-garden pass: shoreline clusters, reeds, lily pads and a real bridge asset.
+  for(const [x,y,s] of [[108,390,.85],[360,455,.8],[110,590,.9],[360,690,.82],[70,842,.9],[520,842,.9],[1060,842,.9],[1510,842,.9]]) assetShoreRocks(x,y,s);
+  for(const [x,y,v,p] of [[145,430,0,.2],[330,520,1,1.1],[138,650,1,2],[342,740,0,3],[610,905,1,4],[1290,965,0,5],[1650,900,1,6]]) assetReeds(x,y,v,p);
+  for(const [x,y,v] of [[170,500,0],[285,615,1],[155,755,0],[520,900,1],[650,1010,0],[1210,920,1],[1390,1010,0],[1700,930,1]]) assetLily(x,y,v);
+  // Bridge is now replaceable through assets/props/bridge_01.png.
+  if(!assetBridge(804,945)){R(742,830,124,290,'#704832','#493225',6);for(let y=838;y<1110;y+=27){R(751,y,106,19,'#a56b45');px(756,y+4,95,3,'#c08455')}}
+  cafeFootpath(936,350,815);
+  const trees=[[62,120,1.22,.2],[350,205,1.05,1],[505,90,.95,2],[1240,92,1.18,3],[1505,185,1.2,4],[1760,120,1.1,5],[80,575,1.2,6],[430,685,1.05,7],[1160,650,1.12,8],[1435,675,1.28,9],[1660,720,1.05,10],[1810,545,1.2,11],[610,665,.9,12]];
+  trees.forEach((a,i)=>assetTree(a[0],a[1],a[2],i%3,a[3]));
+  [[500,290,.9],[650,250,.75],[1180,270,.9],[1490,560,1],[965,690,.8],[540,770,.9],[1690,365,.8]].forEach(a=>assetBush(...a));
+  for(let i=0;i<34;i++){let x=35+hash2(i,31)*1840,y=100+hash2(i,77)*690;if(x>720&&x<890)continue;assetFlower(x,y,i%3)}
+  for(let i=0;i<34;i++){let x=40+hash2(i,14)*1800,y=80+hash2(i,19)*710;assetGrassTuft(x,y,i%2,i*.7)}
+  fence(415,342,5);fence(1320,615,5);bench(470,350);bench(1035,650);lamp(675,370);lamp(1085,650);sign(590,355,'CAFE');sign(1270,580,'GARDEN');assetRock(675,165,.9);assetRock(1450,430,.8);
+  cafeExteriorRich();R(1130,235,120,8,'#8b5a3d');pot(1150,235,.8);pot(1215,235,.8);
+  for(const d of nature.ducks){let drift=Math.sin(waterT*.42+d.p)*22;assetDuck(d.x+drift,d.y,d.p)}
+  for(const [x,y] of [[120,970],[590,900],[1320,980],[1710,910]]){ctx.fillStyle='#4f994c';ctx.beginPath();ctx.ellipse(x,y,17,8,0,0,Math.PI*2);ctx.fill();px(x+1,y-3,9,3,'#72b85b')}
+}
+
+/* ================================================================
+   ZOO:CAFE v20 — COZY TIMBER CAFE + CLEAN TERRACE LAYOUT
+   The frontage uses a richer asymmetrical timber café asset and a
+   deliberately spaced prop layout so tables, signs and lights do not
+   overlap each other.
+   ================================================================ */
+function cafeExteriorRich(){
+  const buildingPath=ZA?.manifest.buildings?.cafeExterior;
+  const building=buildingPath&&ZA.get(buildingPath);
+  if(!building){cafeExterior();return}
+  const cx=cafe.x+cafe.w/2, baseY=cafe.y+cafe.h+22;
+  shadow(cx,baseY,238,24,.20);
+  // richer building silhouette; the gameplay collision box stays unchanged
+  assetSprite(building,cx,baseY,450,330,.5,1);
+
+  const table=ZA.get(ZA.manifest.props.cafeTable);
+  const umbrella=ZA.get(ZA.manifest.props.umbrella);
+  const planter=ZA.get(ZA.manifest.props.planter);
+  const board=ZA.get(ZA.manifest.props.chalkboard);
+  const barrel=ZA.get(ZA.manifest.props.barrelPlanter);
+
+  // One continuous terrace instead of a pile of independent objects.
+  const patioY=cafe.y+cafe.h+30;
+  R(cafe.x-132,patioY,cafe.w+264,70,'#b99662');
+  px(cafe.x-132,patioY, cafe.w+264,4,'#d3b278');
+  for(let x=cafe.x-108;x<cafe.x+cafe.w+110;x+=48)
+    RR(x,patioY+15+(Math.floor(x/48)%2)*4,38,17,5,'#d8bb82','#9d7c55',2);
+
+  // Left seating zone: umbrella behind table, enough breathing room from sign/lamp.
+  if(umbrella) assetSprite(umbrella,cafe.x-142,patioY+59,112,106,.5,1);
+  if(table) assetSprite(table,cafe.x-142,patioY+70,96,72,.5,1);
+  if(barrel) assetSprite(barrel,cafe.x-222,patioY+58,58,58,.5,1);
+
+  // Right seating zone. Board sits beside the building, not inside the table.
+  if(board) assetSprite(board,cafe.x+cafe.w+46,patioY+24,70,70,.5,1);
+  if(table) assetSprite(table,cafe.x+cafe.w+148,patioY+70,96,72,.5,1);
+  if(barrel) assetSprite(barrel,cafe.x+cafe.w+220,patioY+58,58,58,.5,1);
+
+  // Planters hug the façade and never occupy the seating footprints.
+  if(planter){
+    assetSprite(planter,cafe.x+38,cafe.y+cafe.h+22,68,56,.5,1);
+    assetSprite(planter,cafe.x+cafe.w-38,cafe.y+cafe.h+22,68,56,.5,1);
+  }
+
+  // Two edge lamps frame the terrace rather than cutting through furniture.
+  const glow=.58+.18*Math.sin(waterT*2.2);
+  for(const [lx,ly] of [[cafe.x-206,patioY+60],[cafe.x+cafe.w+206,patioY+60]]){
+    ctx.save();ctx.globalAlpha=glow;ctx.fillStyle='#f4c969';ctx.beginPath();ctx.arc(lx,ly-31,9,0,Math.PI*2);ctx.fill();ctx.restore();
+    R(lx-3,ly-31,6,47,'#4d372c');RR(lx-9,ly-43,18,18,2,'#f1c86d','#49342a',3);
+  }
+}
+

@@ -21,3 +21,11 @@
 
 ## 무료 Render 테스트 시
 무료 Web Service는 일정 시간 요청이 없으면 잠들 수 있으며, 다음 접속 때 다시 시작되는 데 시간이 걸릴 수 있습니다. WebSocket은 지원하지만 무료 인스턴스의 운영 제한이 있습니다.
+
+## v18 Water Garden Pass
+- Water-edge rock cluster asset
+- Animated reed assets
+- Lily-pad assets
+- Replaceable wooden bridge PNG asset
+- River/waterfall area now uses more layered environmental props
+- Existing login, multiplayer, chat, rooms, and BGM remain intact
