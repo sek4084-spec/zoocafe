@@ -97,7 +97,26 @@ body:not(.authenticated) .game-shell,body:not(.authenticated) .modal-layer{visib
 .npc-face{grid-row:1/3;width:62px;height:62px;display:grid;place-items:center;border-radius:12px;background:#d59a55;border:3px solid #5c3b2c;font-size:35px}.npc-copy b{font-size:16px;color:#ffe09b}.npc-copy p{margin:4px 28px 5px 0;font-size:13px;line-height:1.45}.npc-choices{grid-column:1/3;display:grid;grid-template-columns:repeat(4,1fr);gap:7px}.npc-choices button{border:2px solid #76553f;border-radius:7px;padding:9px 5px;background:#4b382e;color:#ffe9bc;font-weight:900;cursor:pointer}.npc-choices button:hover{background:#6b4c38;transform:translateY(-1px)}.npc-card small{grid-column:1/3;color:#bda98b;font-size:10px}.npc-close{position:absolute;right:8px;top:7px;border:0;background:transparent;color:#d9c3a3;font-size:23px;cursor:pointer}
 @media (hover:none) and (pointer:coarse), (max-width:760px){.cafe-npc-menu{position:fixed;left:8px;right:8px;bottom:110px;transform:none;width:auto}.npc-card{grid-template-columns:52px 1fr;padding:11px;gap:6px 9px}.npc-face{width:48px;height:48px;font-size:27px}.npc-copy b{font-size:14px}.npc-copy p{font-size:11px;margin:2px 20px 4px 0}.npc-choices{grid-template-columns:repeat(2,1fr);gap:5px}.npc-choices button{padding:8px 4px;font-size:11px}}
 
-/* v34 — mobile camera: show a wider scene instead of cropping the 16:9 canvas. */
+/* ================================================================
+   v34-mobile — phone viewport fix based ONLY on v33 artwork.
+   Keep the 16:9 game canvas intact instead of cropping it with cover.
+   ================================================================ */
 @media (hover:none) and (pointer:coarse), (max-width:760px){
-  .game-stage canvas{object-fit:contain!important;background:#171512}
+  .game-stage{background:#171512!important;display:flex!important;align-items:center!important;justify-content:center!important;overflow:hidden!important}
+  .game-stage canvas{
+    position:absolute!important;
+    left:50%!important;top:50%!important;right:auto!important;bottom:auto!important;
+    width:100%!important;height:auto!important;
+    max-width:100%!important;max-height:100%!important;
+    aspect-ratio:16/9!important;
+    transform:translate(-50%,-50%)!important;
+    object-fit:contain!important;
+  }
+}
+@media (hover:none) and (pointer:coarse) and (orientation:portrait), (max-width:760px) and (orientation:portrait){
+  .game-stage canvas{width:100%!important;height:auto!important;max-height:78%!important}
+  .quick-menu{top:max(8px,env(safe-area-inset-top))!important}
+}
+@media (hover:none) and (pointer:coarse) and (orientation:landscape), (max-width:760px) and (orientation:landscape){
+  .game-stage canvas{width:auto!important;height:100%!important;max-width:100%!important}
 }
