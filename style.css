@@ -151,3 +151,10 @@ body.z44-garden #game{visibility:hidden!important}body.z44-garden .virtual-stick
 .z46-map-brand span{font-size:17px}.z46-map-brand b{font-size:14px;letter-spacing:.5px}.z46-map-brand small{font-size:9px;color:#806348;border-left:1px solid #cdb28b;padding-left:6px}
 .z46-map-hint{position:absolute;z-index:10004;top:max(61px,calc(env(safe-area-inset-top) + 61px));left:50%;transform:translateX(-50%);max-width:70vw;white-space:nowrap;padding:7px 11px;border-radius:13px;background:#4b382ce3;color:#fff1d2;font:700 10px/1 system-ui,sans-serif;box-shadow:0 3px 10px #0003;pointer-events:none}
 body.v45-map-screen .garden-cafe-return{top:auto;bottom:max(18px,env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);background:#4a3528ed;border-color:#e6c99a;padding:12px 18px;font-size:13px}
+
+/* v47 game-world overlay */
+.z47-avatar{position:absolute;transform:translate(-50%,-82%);display:grid;justify-items:center;filter:drop-shadow(0 3px 2px #0005);pointer-events:none;z-index:4}
+.z47-avatar img{width:58px;height:58px;object-fit:contain;image-rendering:pixelated}.z47-avatar.me img{width:72px;height:72px}.z47-avatar.silhouette img{filter:brightness(0);opacity:.58}
+.z47-avatar span{margin-top:-7px;padding:3px 7px;border:2px solid #d6b783;border-radius:10px;background:#4b372de8;color:#fff3d5;font:800 10px/1 system-ui;white-space:nowrap}
+.z47-landmark{position:absolute;transform:translate(-50%,-100%);display:grid;justify-items:center;pointer-events:none;filter:drop-shadow(0 2px 2px #6a4c3040)}
+.z47-landmark b{display:grid;place-items:center;width:38px;height:38px;border:2px solid #c8a56e;border-radius:50%;background:#fff1cbe8;font-size:20px}.z47-landmark span{margin-top:2px;padding:3px 7px;border-radius:9px;background:#fff3d9e8;color:#59402e;font:900 10px/1 system-ui;white-space:nowrap;border:1px solid #d8bd91}
