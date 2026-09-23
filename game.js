@@ -861,3 +861,32 @@ const z40DrawBase=draw;draw=function(){
 };
 const z40GetState=window.ZooCafeGame.getState;window.ZooCafeGame.getState=function(){if(mode==='nearby')return {mode,x:nearbyPlayer.x,y:nearbyPlayer.y,dir:nearbyPlayer.dir,frame:nearbyPlayer.frame,moving:nearbyPlayer.moving};return z40GetState()};
 const z40SetRoster=window.ZooCafeGame.setRoster;window.ZooCafeGame.setRoster=function(list){z40SetRoster(list);setTimeout(z40UpdateHud,0)};
+
+/* ZOO:CAFE v41 — 1km nearby tiers: full <=500m, silhouette 501-1000m */
+const Z41_FULL_RADIUS=500,Z41_MAX_RADIUS=1000;
+nearbyRadiusM=Z41_MAX_RADIUS;
+function z41DrawSilhouette(r){
+  const im=characterImage(r.animal||'lion',r.dir||'down',r.frame||2);if(!im)return;
+  const x=r.x,y=r.y;
+  shadow(x,y+18,22,7,.12);
+  ctx.save();ctx.globalAlpha=.72;ctx.filter='brightness(0)';
+  ctx.drawImage(im,Math.round(x-SPRITE_W/2),Math.round(y-SPRITE_H+22),SPRITE_W,SPRITE_H);
+  ctx.restore();
+  T('???',x,y-SPRITE_H+8,11,'#f5e8cf','center',900);
+  if(Number.isFinite(r.distanceM))T(`약 ${Math.round(r.distanceM/50)*50}m`,x,y-SPRITE_H-17,10,'#fff4d2','center',900);
+  const b=remoteBubbles.get(r.id);if(b&&performance.now()<b.until)bubbleText(b.text,x,y);
+}
+function z41NearbyCounts(){let close=0,far=0;for(const r of remotePlayers.values()){if(r.mode!=='nearby'||!Number.isFinite(r.distanceM))continue;if(r.distanceM<=Z41_FULL_RADIUS)close++;else if(r.distanceM<=Z41_MAX_RADIUS)far++;}return {close,far,total:close+far+1}}
+z40UpdateHud=function(){const el=z40Hud();if(!el)return;el.hidden=mode!=='nearby';if(mode!=='nearby')return;const c=z41NearbyCounts();el.innerHTML=`<strong><span class="gps-dot ${z40GpsOk?'ok':''}"></span>${z40GpsOk?'GPS 연결됨':z40GpsMessage}</strong><span>내 위치: ${z40GpsOk?'GPS 수신됨':'확인 중'} · 탐색 반경 1km · 접속 ${c.total}명</span><span>${z40GpsAccuracy!=null?`정확도 약 ${z40GpsAccuracy}m · `:''}500m 이내 ${c.close}명 · 실루엣 ${c.far}명</span>`}
+const z41DrawBase=draw;
+draw=function(){
+ if(mode!=='nearby'){z41DrawBase();return}
+ ctx.clearRect(0,0,W,H);ctx.save();ctx.translate(-Math.round(z40NearCam.x),-Math.round(z40NearCam.y));z40DrawNearbyWorld();
+ sprite(nearbyPlayer,nearbyPlayer.x,nearbyPlayer.y);drawNameTitle(window.ZOO_USER?.nickname,window.ZOO_USER?.title,nearbyPlayer.x,nearbyPlayer.y-SPRITE_H/2-4);
+ for(const r of remotePlayers.values())if(r.mode==='nearby'){
+   if(Number.isFinite(r.distanceM)&&r.distanceM>Z41_FULL_RADIUS)z41DrawSilhouette(r);
+   else {drawRemote(r,0,0);if(Number.isFinite(r.distanceM))T(`약 ${Math.round(r.distanceM/10)*10}m`,r.x,r.y-SPRITE_H-17,10,'#fff4d2','center',900)}
+ }
+ ctx.restore();if(performance.now()<bubble.until)bubbleText(bubble.text,nearbyPlayer.x-z40NearCam.x,nearbyPlayer.y-z40NearCam.y);
+ interaction.hidden=chatActive||!nearNearbyCafe();interactionText.textContent='카페로 들어가기';z40UpdateHud();
+};
