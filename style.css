@@ -102,3 +102,16 @@ body:not(.authenticated) .game-shell,body:not(.authenticated) .modal-layer{visib
 /* v37 — deployment test badge */
 .version-badge{position:absolute;left:10px;top:10px;z-index:75;padding:5px 8px;border:2px solid #6b4a31;border-radius:7px;background:#2e241ed9;color:#ffe0a3;font-size:10px;font-weight:900;letter-spacing:.4px;box-shadow:0 2px 0 #17110d99;pointer-events:none}
 @media (hover:none) and (pointer:coarse){.version-badge{left:7px;top:7px;padding:4px 6px;font-size:9px;opacity:.88}}
+
+/* v40 — mobile UI must stay fully inside the phone viewport */
+.gps-status-hud{position:absolute;z-index:76;left:10px;top:48px;width:min(330px,calc(100% - 20px));padding:8px 10px;border:2px solid #806044;border-radius:9px;background:#201d19e8;color:#fff4d5;box-shadow:0 4px 12px #0005;pointer-events:none;display:grid;gap:3px;font-size:10px}.gps-status-hud[hidden]{display:none}.gps-status-hud strong{font-size:13px}.gps-status-hud span{display:block}.gps-dot{display:inline-block!important;width:9px;height:9px;border-radius:50%;background:#c45b4b;margin-right:6px}.gps-dot.ok{background:#52d66d}
+@media (hover:none) and (pointer:coarse), (max-width:760px){
+ .side-panel{left:auto!important;right:max(6px,env(safe-area-inset-right))!important;top:max(6px,env(safe-area-inset-top))!important;width:auto!important;max-width:calc(100vw - 12px)!important}
+ .quick-menu{transform:none!important;width:auto!important;max-width:100%!important;padding:3px!important;gap:2px!important;display:flex!important;flex-wrap:nowrap!important}
+ .quick-menu button{width:39px!important;min-width:39px!important;min-height:39px!important;height:39px!important;padding:2px 0!important;border-radius:5px!important}.quick-menu span{font-size:14px!important;height:15px!important}.quick-menu b{font-size:7px!important;line-height:9px!important}.quick-menu small{display:none!important}
+ .version-badge{left:max(6px,env(safe-area-inset-left))!important;top:max(6px,env(safe-area-inset-top))!important;max-width:calc(100vw - 220px)!important;overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important;font-size:8px!important;padding:4px 5px!important}
+ .gps-status-hud{left:max(7px,env(safe-area-inset-left));top:max(44px,calc(env(safe-area-inset-top) + 44px));width:min(235px,calc(100vw - 14px));font-size:9px;padding:6px 8px}.gps-status-hud strong{font-size:11px}
+ .virtual-stick{right:max(12px,env(safe-area-inset-right))!important;bottom:max(14px,env(safe-area-inset-bottom))!important;width:100px!important;height:100px!important}.stick-knob{left:29px!important;top:29px!important;width:42px!important;height:42px!important}
+ .mobile-actions{left:max(14px,env(safe-area-inset-left))!important;right:auto!important;bottom:max(16px,env(safe-area-inset-bottom))!important;gap:8px!important}.mobile-action{width:56px!important;height:56px!important}.mobile-chat{width:50px!important;height:50px!important}
+}
+@media (hover:none) and (pointer:coarse) and (orientation:landscape){.gps-status-hud{top:max(45px,calc(env(safe-area-inset-top) + 45px));width:250px}.quick-menu button{width:42px!important;min-width:42px!important}}
