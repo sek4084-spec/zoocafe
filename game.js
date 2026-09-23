@@ -890,3 +890,71 @@ draw=function(){
  ctx.restore();if(performance.now()<bubble.until)bubbleText(bubble.text,nearbyPlayer.x-z40NearCam.x,nearbyPlayer.y-z40NearCam.y);
  interaction.hidden=chatActive||!nearNearbyCafe();interactionText.textContent='카페로 들어가기';z40UpdateHud();
 };
+
+
+/* ZOO:CAFE v42 — symmetric nearby sync + device-safe mobile camera */
+function z42ViewportInfo(){
+  const vv=window.visualViewport;
+  return {w:Math.round(vv?.width||innerWidth),h:Math.round(vv?.height||innerHeight),dpr:window.devicePixelRatio||1};
+}
+function z42RefreshViewport(){
+  const v=z42ViewportInfo();
+  document.documentElement.style.setProperty('--z42-vw',v.w+'px');
+  document.documentElement.style.setProperty('--z42-vh',v.h+'px');
+}
+addEventListener('resize',z42RefreshViewport,{passive:true});
+addEventListener('orientationchange',()=>setTimeout(z42RefreshViewport,120),{passive:true});
+window.visualViewport?.addEventListener('resize',z42RefreshViewport,{passive:true});
+z42RefreshViewport();
+
+// v40 already provides the café follow camera. Recalculate it every frame so
+// iOS touch/viewport changes cannot leave the camera one movement step behind.
+const z42DrawBase=draw;
+draw=function(){
+  if(mode==='cafe'&&Z40_MOBILE()){
+    const viewW=760,viewH=430;
+    const tx=clamp(cafePlayer.x-viewW/2,0,Math.max(0,W-viewW));
+    const ty=clamp(cafePlayer.y-viewH/2,0,Math.max(0,H-viewH));
+    z40CafeCam.x+=(tx-z40CafeCam.x)*.18;
+    z40CafeCam.y+=(ty-z40CafeCam.y)*.18;
+  }
+  z42DrawBase();
+};
+
+
+/* ZOO:CAFE v43 — Google Maps Garden. GPS is the garden position. */
+window.ZOO_LAST_GEO=null;
+const z43ApplyGeoBase=z40ApplyGeo;
+z40ApplyGeo=function(pos){
+  window.ZOO_LAST_GEO={lat:pos.coords.latitude,lon:pos.coords.longitude,accuracy:pos.coords.accuracy};
+  z43ApplyGeoBase(pos);
+  if(mode==='nearby')window.ZooGardenMap?.setSelf?.(pos.coords.latitude,pos.coords.longitude,window.ZOO_USER?.animal||'lion');
+};
+const z43EnterNearbyBase=enterNearbyFromCafe;
+enterNearbyFromCafe=async function(){
+  window.ZooGardenMap?.show?.();
+  await z43EnterNearbyBase();
+  const st=document.getElementById('gardenMapStatus');if(st)st.hidden=false;
+  if(window.ZOO_LAST_GEO)window.ZooGardenMap?.setSelf?.(window.ZOO_LAST_GEO.lat,window.ZOO_LAST_GEO.lon,window.ZOO_USER?.animal||'lion');
+  window.ZooGardenMap?.setRemotes?.([...remotePlayers.values()]);
+};
+// In the garden, movement comes from GPS rather than joystick/world coordinates.
+moveNearby=function(){nearbyPlayer.moving=false;nearbyPlayer.frame=2};
+nearNearbyCafe=function(){return true};
+const z43ExitBase=exit;
+exit=function(){
+  if(mode==='nearby'&&cooldown<=0){window.ZooGardenMap?.hide?.();const st=document.getElementById('gardenMapStatus');if(st)st.hidden=true;mode='cafe';cafePlayer={x:480,y:475,dir:'up',frame:2,t:0,moving:false};cooldown=.3;syncBgm();window.ZooCafeNet?.tick?.(true);return}
+  z43ExitBase();
+};
+const z43RosterBase=window.ZooCafeGame.setRoster;
+window.ZooCafeGame.setRoster=function(list){z43RosterBase(list);if(mode==='nearby')window.ZooGardenMap?.setRemotes?.(list||[])};
+const z43RemoteBase=window.ZooCafeGame.setRemote;
+window.ZooCafeGame.setRemote=function(p){z43RemoteBase(p);if(mode==='nearby')window.ZooGardenMap?.setRemotes?.([...remotePlayers.values()])};
+const z43DrawBase=draw;
+draw=function(){
+  z43DrawBase();
+  if(mode==='nearby'){
+    window.ZooGardenMap?.show?.();
+    interaction.hidden=chatActive;interactionText.textContent='카페로 돌아가기';
+  }else window.ZooGardenMap?.hide?.();
+};

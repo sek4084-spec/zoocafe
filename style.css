@@ -115,3 +115,28 @@ body:not(.authenticated) .game-shell,body:not(.authenticated) .modal-layer{visib
  .mobile-actions{left:max(14px,env(safe-area-inset-left))!important;right:auto!important;bottom:max(16px,env(safe-area-inset-bottom))!important;gap:8px!important}.mobile-action{width:56px!important;height:56px!important}.mobile-chat{width:50px!important;height:50px!important}
 }
 @media (hover:none) and (pointer:coarse) and (orientation:landscape){.gps-status-hud{top:max(45px,calc(env(safe-area-inset-top) + 45px));width:250px}.quick-menu button{width:42px!important;min-width:42px!important}}
+
+
+/* v42 — iPhone/Android viewport normalization. Keep the full 16:9 game image visible. */
+@media (hover:none) and (pointer:coarse), (max-width:760px){
+  html,body{width:100%;height:100%;height:100dvh;min-height:100dvh;overflow:hidden!important;}
+  body{position:fixed;inset:0;padding:0!important;}
+  .game-shell,.game-console,.game-stage{position:fixed!important;inset:0!important;width:100vw!important;height:100dvh!important;min-height:0!important;margin:0!important;padding:0!important;}
+  .game-stage{display:flex!important;align-items:center!important;justify-content:center!important;background:#86c968!important;overflow:hidden!important;}
+  .game-stage canvas{position:relative!important;inset:auto!important;width:100vw!important;height:auto!important;max-width:100vw!important;max-height:100dvh!important;aspect-ratio:16/9!important;object-fit:contain!important;}
+  .mobile-controls{position:fixed!important;inset:0!important;width:100vw!important;height:100dvh!important;}
+  .side-panel{position:fixed!important;right:max(6px,env(safe-area-inset-right))!important;top:max(6px,env(safe-area-inset-top))!important;}
+  .version-badge{position:fixed!important;left:max(6px,env(safe-area-inset-left))!important;top:max(6px,env(safe-area-inset-top))!important;}
+  .gps-status-hud{position:fixed!important;left:max(7px,env(safe-area-inset-left))!important;top:max(42px,calc(env(safe-area-inset-top) + 42px))!important;max-width:min(245px,calc(100vw - 14px))!important;}
+  .virtual-stick{position:fixed!important;right:max(12px,env(safe-area-inset-right))!important;bottom:max(14px,calc(env(safe-area-inset-bottom) + 8px))!important;}
+  .mobile-actions{position:fixed!important;left:max(14px,env(safe-area-inset-left))!important;right:auto!important;bottom:max(16px,calc(env(safe-area-inset-bottom) + 8px))!important;}
+  body.mobile-chat-open .chat-panel{position:fixed!important;left:max(8px,env(safe-area-inset-left))!important;right:max(8px,env(safe-area-inset-right))!important;bottom:max(126px,calc(env(safe-area-inset-bottom) + 118px))!important;}
+}
+@media (hover:none) and (pointer:coarse) and (orientation:portrait){
+  .quick-menu button{width:36px!important;min-width:36px!important;height:37px!important;min-height:37px!important}
+  .gps-status-hud{top:max(48px,calc(env(safe-area-inset-top) + 48px))!important;width:min(220px,calc(100vw - 14px))!important}
+}
+
+/* v43 — Google Maps Garden test */
+.garden-map{position:absolute;inset:0;z-index:2;width:100%;height:100%;background:#ddd}.garden-map[hidden]{display:none}.garden-map-status{position:absolute;z-index:77;left:50%;top:14px;transform:translateX(-50%);padding:7px 10px;border-radius:8px;background:#201d19dc;color:#fff4d5;font-size:10px;font-weight:800;pointer-events:none}.garden-map-status[hidden]{display:none}.garden-map-status.bad{background:#6b2929e8}.zoo-map-marker{position:relative;width:58px;height:66px;display:grid;place-items:center;filter:drop-shadow(0 4px 3px #0005);transform:translateY(-4px)}.zoo-map-marker img{width:58px;height:58px;object-fit:contain;image-rendering:pixelated}.zoo-map-marker b{position:absolute;left:50%;bottom:-4px;transform:translateX(-50%);padding:1px 5px;border-radius:8px;background:#3b2b22;color:#fff2cf;font-size:9px;white-space:nowrap}.zoo-map-marker.self{transform:scale(1.12) translateY(-5px)}.zoo-map-marker.silhouette img{filter:brightness(0);opacity:.68}.garden-map-mode #game{visibility:hidden!important}.garden-map-mode .virtual-stick{display:none!important}.garden-map-mode #gardenMapStatus{display:block}.garden-map-mode .gps-status-hud{z-index:78}.garden-map-mode .mobile-actions{z-index:90}.garden-map-mode .interaction{z-index:90}
+@media (hover:none) and (pointer:coarse), (max-width:760px){.garden-map{position:fixed;inset:0;width:100vw;height:100dvh}.garden-map-status{position:fixed;top:max(44px,calc(env(safe-area-inset-top) + 44px));max-width:52vw;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.zoo-map-marker{width:52px;height:60px}.zoo-map-marker img{width:52px;height:52px}}

@@ -66,13 +66,15 @@ const wsSend=(ws,obj)=>{if(ws.readyState===1)ws.send(JSON.stringify(obj));};
 const NEARBY_RADIUS_M=1000;
 const NEARBY_FULL_RADIUS_M=500;
 function distanceM(a,b){if(!a?.geo||!b?.geo)return Infinity;const R=6371000,toRad=v=>v*Math.PI/180,dLat=toRad(b.geo.lat-a.geo.lat),dLon=toRad(b.geo.lon-a.geo.lon),la1=toRad(a.geo.lat),la2=toRad(b.geo.lat);const h=Math.sin(dLat/2)**2+Math.cos(la1)*Math.cos(la2)*Math.sin(dLon/2)**2;return 2*R*Math.asin(Math.sqrt(h));}
-function publicPlayer(c,viewer=null){const d=viewer?distanceM(viewer,c):null;return {id:c.user.id,nickname:c.user.nickname,animal:c.user.animal||'lion',title:c.user.title||'나그네',x:c.x,y:c.y,dir:c.dir,frame:c.frame,moving:c.moving,mode:c.mode,distanceM:Number.isFinite(d)?Math.round(d):null,visibility:Number.isFinite(d)?(d<=NEARBY_FULL_RADIUS_M?'full':'silhouette'):null};}
+function publicPlayer(c,viewer=null){const d=viewer?distanceM(viewer,c):null;const nearby=viewer&&c.mode==='nearby'&&c.geo;return {id:c.user.id,nickname:c.user.nickname,animal:c.user.animal||'lion',title:c.user.title||'나그네',x:c.x,y:c.y,dir:c.dir,frame:c.frame,moving:c.moving,mode:c.mode,distanceM:Number.isFinite(d)?Math.round(d):null,visibility:Number.isFinite(d)?(d<=NEARBY_FULL_RADIUS_M?'full':'silhouette'):null,displayLat:nearby?Math.round(c.geo.lat*1000)/1000:null,displayLon:nearby?Math.round(c.geo.lon*1000)/1000:null};}
 function nearbyClients(viewer){return [...clients.values()].filter(c=>c.authed&&c.mode==='nearby'&&c.geo&&viewer.geo&&distanceM(viewer,c)<=NEARBY_RADIUS_M);}
 function syncNearby(){for(const [ws,c] of clients){if(!c.authed||c.mode!=='nearby')continue;const players=c.geo?nearbyClients(c).map(v=>publicPlayer(v,c)):[publicPlayer(c)];wsSend(ws,{type:'roster',mode:'nearby',radiusM:NEARBY_RADIUS_M,players});}}
 
 function roomPlayers(mode){return [...clients.values()].filter(c=>c.authed&&c.mode===mode).map(c=>({id:c.user.id,nickname:c.user.nickname,animal:c.user.animal||'lion',title:c.user.title||'나그네',x:c.x,y:c.y,dir:c.dir,frame:c.frame,moving:c.moving,mode:c.mode}));}
 function broadcastRoom(mode,obj,except=null){const raw=JSON.stringify(obj);for(const [ws,c] of clients)if(ws!==except&&c.authed&&c.mode===mode&&ws.readyState===1)ws.send(raw);}
 function syncRoom(mode){const packet={type:'roster',mode,players:roomPlayers(mode)};for(const [ws,c] of clients)if(c.authed&&c.mode===mode)wsSend(ws,packet);}
+// V42 nearby symmetry refresh: keeps both clients' distance/visibility lists consistent.
+setInterval(()=>syncNearby(),2000);
 wss.on('connection',ws=>{
   const c={authed:false,user:null,mode:'world',x:1430,y:980,dir:'down',frame:2,moving:false,geo:null}; clients.set(ws,c);
   ws.on('message',buf=>{let m;try{m=JSON.parse(String(buf))}catch{return}
@@ -83,7 +85,7 @@ wss.on('connection',ws=>{
     }
     if(m.type==='state'){
       const old=c.mode, next=validModes.has(m.mode)?m.mode:c.mode;c.mode=next;
-      const maxX=next==='world'?2880:960,maxY=next==='world'?1800:540;
+      const maxX=(next==='world'||next==='nearby')?2880:960,maxY=(next==='world'||next==='nearby')?1800:540;
       c.x=Math.max(0,Math.min(maxX,Number(m.x)||0));c.y=Math.max(0,Math.min(maxY,Number(m.y)||0));
       c.dir=['up','down','left','right'].includes(m.dir)?m.dir:'down';c.frame=[1,2,3].includes(m.frame)?m.frame:2;c.moving=!!m.moving;
       if(old!==next){old==='nearby'?syncNearby():syncRoom(old);next==='nearby'?syncNearby():syncRoom(next)}
