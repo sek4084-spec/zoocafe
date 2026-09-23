@@ -15,4 +15,21 @@ addEventListener('keydown',e=>{if(e.target?.matches?.('input, textarea, select, 
 document.querySelectorAll('.chat-tabs button').forEach(b=>b.addEventListener('click',e=>{e.stopPropagation();document.querySelectorAll('.chat-tabs button').forEach(x=>x.classList.remove('active'));b.classList.add('active')}));
 })();
 
-document.getElementById('gardenCafeReturn')?.addEventListener('click',()=>{const b=document.getElementById('mobileActionBtn');if(b){b.click();return}window.dispatchEvent(new KeyboardEvent('keydown',{key:'e',code:'KeyE',bubbles:true}))});
+
+/* v48 — conversation-first garden controls */
+(()=>{
+const ret=document.getElementById('gardenCafeReturn'),bubbleBtn=document.getElementById('gardenBubbleChat'),fullBtn=document.getElementById('gardenFullChat');
+const quick=document.getElementById('z48QuickChat'),qi=document.getElementById('z48QuickInput'),qs=document.getElementById('z48QuickSend');
+const full=document.getElementById('z48FullChat'),fc=document.getElementById('z48FullChatClose'),log=document.getElementById('z48FullChatLog'),form=document.getElementById('z48FullChatForm'),fi=document.getElementById('z48FullChatInput');
+const esc=s=>{const d=document.createElement('div');d.textContent=String(s||'');return d.innerHTML};
+function render(){const ms=window.ZooCafeGame?.getChatMessages?.()||[];log.innerHTML=ms.length?ms.map(m=>`<div class="z48-chat-row"><b>${esc(m.name)}</b><span>${esc(m.text)}</span></div>`).join(''):'<div class="z48-chat-empty">아직 이야기가 없어요.<br>먼저 인사해보세요 ☕</div>';log.scrollTop=log.scrollHeight}
+function send(v){if(window.ZooCafeGame?.sendQuickChat?.(v)){render();return true}return false}
+ret?.addEventListener('click',e=>{e.preventDefault();window.ZooCafeGame?.returnToCafe?.()});
+bubbleBtn?.addEventListener('click',()=>{quick.hidden=!quick.hidden;if(!quick.hidden)setTimeout(()=>qi.focus(),0)});
+function quickSend(){if(send(qi.value)){qi.value='';quick.hidden=true}}
+qs?.addEventListener('click',quickSend);qi?.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();quickSend()}else if(e.key==='Escape')quick.hidden=true});
+fullBtn?.addEventListener('click',()=>{full.hidden=false;render();setTimeout(()=>fi.focus(),0)});
+fc?.addEventListener('click',()=>full.hidden=true);
+form?.addEventListener('submit',e=>{e.preventDefault();if(send(fi.value)){fi.value='';setTimeout(render,0)}});
+setInterval(()=>{if(full&&!full.hidden)render()},700);
+})();

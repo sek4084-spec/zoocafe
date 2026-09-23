@@ -158,7 +158,7 @@ chatPanel.addEventListener('click',openChat);
 addEventListener('pointerdown',startBgm,{once:true}); addEventListener('keydown',startBgm,{once:true});
 window.ZooCafeAudio={setBgmVolume(v){bgmVolume=Math.max(0,Math.min(1,v));[cityBgm,cafeBgm].forEach(a=>{if(a)a.volume=bgmVolume;});},getBgmVolume(){return bgmVolume;},toggleBgm(on){bgmEnabled=!!on;if(bgmEnabled){bgmStarted=true;syncBgm();}else{[cityBgm,cafeBgm].forEach(a=>{if(a)a.pause();});}}};
 
-window.ZooCafeGame={getState(){const p=mode==='world'?player:cafePlayer;return {mode,x:p.x,y:p.y,dir:p.dir,frame:p.frame,moving:p.moving}},setRoster(list){remotePlayers.clear();const me=window.ZOO_USER?.id;for(const r of list||[])if(r.id!==me)remotePlayers.set(r.id,r)},setRemote(r){if(r&&r.id!==window.ZOO_USER?.id)remotePlayers.set(r.id,r)},remoteChat(m){if(!m||m.id===window.ZOO_USER?.id)return;addChatMessage(m.nickname,m.text);remoteBubbles.set(m.id,{text:m.text,until:performance.now()+4200})},clearRemotes(){remotePlayers.clear();remoteBubbles.clear()}};
+window.ZooCafeGame={getState(){const p=mode==='world'?player:cafePlayer;return {mode,x:p.x,y:p.y,dir:p.dir,frame:p.frame,moving:p.moving}},setRoster(list){remotePlayers.clear();const me=window.ZOO_USER?.id;for(const r of list||[])if(r.id!==me)remotePlayers.set(r.id,r)},setRemote(r){if(r&&r.id!==window.ZOO_USER?.id)remotePlayers.set(r.id,r)},remoteChat(m){if(!m||m.id===window.ZOO_USER?.id)return;addChatMessage(m.nickname,m.text);remoteBubbles.set(m.id,{text:m.text,until:performance.now()+5200});window.dispatchEvent(new CustomEvent('zoo-map-chat',{detail:{id:m.id,text:m.text,me:false}}))},clearRemotes(){remotePlayers.clear();remoteBubbles.clear()}};
 
 /* ================================================================
    ZOO:CAFE v14 — CLASSIC PIXEL NATURE PASS
@@ -637,6 +637,25 @@ window.ZooCafeGame.getState=function(){const p=mode==='world'?player:cafePlayer;
     document.body.classList.toggle('mobile-chat-open');
   },true);
   panel?.addEventListener('click',()=>{document.body.classList.add('mobile-chat-open')});
+
+/* v48 public controls for the full-screen garden UI */
+window.ZooCafeGame.returnToCafe=function(){
+  if(mode!=='nearby')return false;
+  mode='cafe';
+  cafePlayer={x:480,y:475,dir:'up',frame:2,t:0,moving:false};
+  cooldown=.35;syncBgm();window.ZooCafeNet?.tick?.(true);return true;
+};
+window.ZooCafeGame.openQuickChat=function(){openChat();};
+window.ZooCafeGame.closeQuickChat=function(){closeChat();};
+window.ZooCafeGame.sendQuickChat=function(text){
+  text=String(text||'').trim().slice(0,80);if(!text)return false;
+  const name=window.ZOO_USER?.nickname||'멍사자';
+  addChatMessage(name,text);bubble={text,until:performance.now()+5200};
+  if(window.ZooCafeNet?.connected)window.ZooCafeNet.sendChat(text);
+  window.dispatchEvent(new CustomEvent('zoo-map-chat',{detail:{id:window.ZOO_USER?.id,text,me:true}}));
+  return true;
+};
+window.ZooCafeGame.getChatMessages=function(){return chatMessages.slice(-50);};
 })();
 
 /* v28 — contextual indoor interaction + approved classic lion barista */
