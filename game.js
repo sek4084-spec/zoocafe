@@ -922,39 +922,6 @@ draw=function(){
 };
 
 
-/* ZOO:CAFE v43 — Google Maps Garden. GPS is the garden position. */
-window.ZOO_LAST_GEO=null;
-const z43ApplyGeoBase=z40ApplyGeo;
-z40ApplyGeo=function(pos){
-  window.ZOO_LAST_GEO={lat:pos.coords.latitude,lon:pos.coords.longitude,accuracy:pos.coords.accuracy};
-  z43ApplyGeoBase(pos);
-  if(mode==='nearby')window.ZooGardenMap?.setSelf?.(pos.coords.latitude,pos.coords.longitude,window.ZOO_USER?.animal||'lion');
-};
-const z43EnterNearbyBase=enterNearbyFromCafe;
-enterNearbyFromCafe=async function(){
-  window.ZooGardenMap?.show?.();
-  await z43EnterNearbyBase();
-  const st=document.getElementById('gardenMapStatus');if(st)st.hidden=false;
-  if(window.ZOO_LAST_GEO)window.ZooGardenMap?.setSelf?.(window.ZOO_LAST_GEO.lat,window.ZOO_LAST_GEO.lon,window.ZOO_USER?.animal||'lion');
-  window.ZooGardenMap?.setRemotes?.([...remotePlayers.values()]);
-};
-// In the garden, movement comes from GPS rather than joystick/world coordinates.
-moveNearby=function(){nearbyPlayer.moving=false;nearbyPlayer.frame=2};
-nearNearbyCafe=function(){return true};
-const z43ExitBase=exit;
-exit=function(){
-  if(mode==='nearby'&&cooldown<=0){window.ZooGardenMap?.hide?.();const st=document.getElementById('gardenMapStatus');if(st)st.hidden=true;mode='cafe';cafePlayer={x:480,y:475,dir:'up',frame:2,t:0,moving:false};cooldown=.3;syncBgm();window.ZooCafeNet?.tick?.(true);return}
-  z43ExitBase();
-};
-const z43RosterBase=window.ZooCafeGame.setRoster;
-window.ZooCafeGame.setRoster=function(list){z43RosterBase(list);if(mode==='nearby')window.ZooGardenMap?.setRemotes?.(list||[])};
-const z43RemoteBase=window.ZooCafeGame.setRemote;
-window.ZooCafeGame.setRemote=function(p){z43RemoteBase(p);if(mode==='nearby')window.ZooGardenMap?.setRemotes?.([...remotePlayers.values()])};
-const z43DrawBase=draw;
-draw=function(){
-  z43DrawBase();
-  if(mode==='nearby'){
-    window.ZooGardenMap?.show?.();
-    interaction.hidden=chatActive;interactionText.textContent='카페로 돌아가기';
-  }else window.ZooGardenMap?.hide?.();
-};
+/* v44 — Google Maps garden bridge. GPS, not joystick, is the garden position. */
+const z44NearCafeBase=nearNearbyCafe;
+nearNearbyCafe=function(){return mode==='nearby'?true:z44NearCafeBase()};
