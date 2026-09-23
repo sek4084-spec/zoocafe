@@ -14,3 +14,5 @@ close.addEventListener('click',hide);layer.addEventListener('click',e=>{if(e.tar
 addEventListener('keydown',e=>{if(e.target?.matches?.('input, textarea, select, [contenteditable=\"true\"]'))return;if(!layer.hidden){if(e.key==='Escape'){e.preventDefault();hide()}return}if(document.activeElement?.id==='chatInput')return;const k=e.key.toLowerCase();if(k==='escape'){e.preventDefault();show('menu')}else if(k==='i'){e.preventDefault();show('inventory')}else if(k==='m'){e.preventDefault();show('map')}} ,true);
 document.querySelectorAll('.chat-tabs button').forEach(b=>b.addEventListener('click',e=>{e.stopPropagation();document.querySelectorAll('.chat-tabs button').forEach(x=>x.classList.remove('active'));b.classList.add('active')}));
 })();
+
+document.getElementById('gardenCafeReturn')?.addEventListener('click',()=>{const b=document.getElementById('mobileActionBtn');if(b){b.click();return}window.dispatchEvent(new KeyboardEvent('keydown',{key:'e',code:'KeyE',bubbles:true}))});
