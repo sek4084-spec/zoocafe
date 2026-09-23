@@ -22,7 +22,7 @@ const ret=document.getElementById('gardenCafeReturn'),bubbleBtn=document.getElem
 const quick=document.getElementById('z48QuickChat'),qi=document.getElementById('z48QuickInput'),qs=document.getElementById('z48QuickSend');
 const full=document.getElementById('z48FullChat'),fc=document.getElementById('z48FullChatClose'),log=document.getElementById('z48FullChatLog'),form=document.getElementById('z48FullChatForm'),fi=document.getElementById('z48FullChatInput');
 const esc=s=>{const d=document.createElement('div');d.textContent=String(s||'');return d.innerHTML};
-function render(){const ms=window.ZooCafeGame?.getChatMessages?.()||[];log.innerHTML=ms.length?ms.map(m=>`<div class="z48-chat-row"><b>${esc(m.name)}</b><span>${esc(m.text)}</span></div>`).join(''):'<div class="z48-chat-empty">아직 이야기가 없어요.<br>먼저 인사해보세요 ☕</div>';log.scrollTop=log.scrollHeight}
+function render(){const ms=window.ZooCafeGame?.getChatMessages?.()||[];log.innerHTML=ms.length?ms.map(m=>{const mine=m.name===(window.ZOO_USER?.nickname||'');const a=mine?(window.ZOO_USER?.animal||'lion'):'lion';const src=a==='rabbit'?'images/rabbit/rabbit-preview.png':'images/mung-saja-down-2.png';return `<div class="z48-chat-row"><img class="z48-chat-face" src="${src}" alt=""><b>${esc(m.name)}</b><span>${esc(m.text)}</span></div>`}).join(''):'<div class="z48-chat-empty">아직 이야기가 없어요.<br>먼저 인사해보세요 ☕</div>';log.scrollTop=log.scrollHeight}
 function send(v){if(window.ZooCafeGame?.sendQuickChat?.(v)){render();return true}return false}
 ret?.addEventListener('click',e=>{e.preventDefault();window.ZooCafeGame?.returnToCafe?.()});
 bubbleBtn?.addEventListener('click',()=>{quick.hidden=!quick.hidden;if(!quick.hidden)setTimeout(()=>qi.focus(),0)});

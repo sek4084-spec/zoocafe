@@ -65,9 +65,8 @@ const clients=new Map();
 const validModes=new Set(['world','cafe','bookshop','workshop','lodge','nearby']);
 const wsSend=(ws,obj)=>{if(ws.readyState===1)ws.send(JSON.stringify(obj));};
 const NEARBY_RADIUS_M=1000;
-const NEARBY_FULL_RADIUS_M=500;
 function distanceM(a,b){if(!a?.geo||!b?.geo)return Infinity;const R=6371000,toRad=v=>v*Math.PI/180,dLat=toRad(b.geo.lat-a.geo.lat),dLon=toRad(b.geo.lon-a.geo.lon),la1=toRad(a.geo.lat),la2=toRad(b.geo.lat);const h=Math.sin(dLat/2)**2+Math.cos(la1)*Math.cos(la2)*Math.sin(dLon/2)**2;return 2*R*Math.asin(Math.sqrt(h));}
-function publicPlayer(c,viewer=null){const d=viewer?distanceM(viewer,c):null;const remoteGeo=viewer&&c.geo&&c.user?.id!==viewer.user?.id?{mapLat:Math.round(c.geo.lat*1000)/1000,mapLon:Math.round(c.geo.lon*1000)/1000}:{};return {id:c.user.id,nickname:c.user.nickname,animal:c.user.animal||'lion',title:c.user.title||'나그네',x:c.x,y:c.y,dir:c.dir,frame:c.frame,moving:c.moving,mode:c.mode,distanceM:Number.isFinite(d)?Math.round(d):null,visibility:Number.isFinite(d)?(d<=NEARBY_FULL_RADIUS_M?'full':'silhouette'):null,...remoteGeo};}
+function publicPlayer(c,viewer=null){const d=viewer?distanceM(viewer,c):null;return {id:c.user.id,nickname:c.user.nickname,animal:c.user.animal||'lion',title:c.user.title||'나그네',x:c.x,y:c.y,dir:c.dir,frame:c.frame,moving:c.moving,mode:c.mode,distanceM:Number.isFinite(d)?Math.round(d):null,visibility:Number.isFinite(d)?'full':null};}
 function nearbyClients(viewer){return [...clients.values()].filter(c=>c.authed&&c.mode==='nearby'&&c.geo&&viewer.geo&&distanceM(viewer,c)<=NEARBY_RADIUS_M);}
 function syncNearby(){for(const [ws,c] of clients){if(!c.authed||c.mode!=='nearby')continue;const players=c.geo?nearbyClients(c).map(v=>publicPlayer(v,c)):[publicPlayer(c)];wsSend(ws,{type:'roster',mode:'nearby',radiusM:NEARBY_RADIUS_M,players});}}
 

@@ -638,6 +638,9 @@ window.ZooCafeGame.getState=function(){const p=mode==='world'?player:cafePlayer;
   },true);
   panel?.addEventListener('click',()=>{document.body.classList.add('mobile-chat-open')});
 
+/* v49 — the garden is a fixed 1 km game field; GPS selects who can share it, game XY moves the avatar. */
+moveNearby=function(){let[dx,dy,m]=input(nearbyPlayer);nearbyPlayer.x=clamp(nearbyPlayer.x+dx,PH,Z40_NEAR_W-PH);nearbyPlayer.y=clamp(nearbyPlayer.y+dy,PH,Z40_NEAR_H-PH);animate(nearbyPlayer,m)};
+window.ZooCafeGame.getGardenPlayer=function(){return mode==='nearby'?{x:nearbyPlayer.x,y:nearbyPlayer.y,dir:nearbyPlayer.dir,frame:nearbyPlayer.frame,moving:nearbyPlayer.moving}:null};
 /* v48 public controls for the full-screen garden UI */
 window.ZooCafeGame.returnToCafe=function(){
   if(mode!=='nearby')return false;
