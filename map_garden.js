@@ -20,9 +20,15 @@ async function open(){layer.hidden=false;document.body.classList.add('v45-map-sc
  setTimeout(()=>{google.maps.event.trigger(map,'resize');map.setCenter(center);},80);
  google.maps.event.addListenerOnce(map,'tilesloaded',()=>{quiet();});
  addDecor();updateSelf();sync()};
- if(navigator.geolocation)navigator.geolocation.getCurrentPosition(start,e=>say(e.code===1?'휴대폰 위치 권한을 허용해 주세요.':'GPS 위치를 확인하지 못했습니다.'),{enableHighAccuracy:true,maximumAge:10000,timeout:15000});
+ if(!navigator.geolocation){say('이 브라우저에서는 GPS를 사용할 수 없습니다.');return}
+ let started=false;
+ const accept=pos=>{if(started)return;started=true;start(pos);if(watchId!=null){navigator.geolocation.clearWatch(watchId);watchId=null}};
+ const fail=e=>{if(started)return;if(e.code===1)say('휴대폰 위치 권한을 허용해 주세요.');else say('GPS를 찾는 중입니다… 위치 기능을 켜고 잠시 기다려 주세요.')};
+ // Android: cached/network location is enough to choose the garden; do not require a fresh precise GPS lock.
+ navigator.geolocation.getCurrentPosition(accept,()=>{}, {enableHighAccuracy:false,maximumAge:300000,timeout:5000});
+ watchId=navigator.geolocation.watchPosition(accept,fail,{enableHighAccuracy:false,maximumAge:60000,timeout:20000});
 }
-function close(){layer.hidden=true;document.body.classList.remove('v45-map-screen');if(selfOverlay){selfOverlay.setMap(null);selfOverlay=null}for(const o of remoteOverlays.values())o.setMap(null);remoteOverlays.clear();for(const o of decor)o.setMap(null);decor.length=0;for(const o of mapBubbles.values())o.setMap(null);mapBubbles.clear();decorMade=false;center=null;map=null;mapEl.innerHTML=''}
+function close(){if(watchId!=null){navigator.geolocation?.clearWatch?.(watchId);watchId=null}layer.hidden=true;document.body.classList.remove('v45-map-screen');if(selfOverlay){selfOverlay.setMap(null);selfOverlay=null}for(const o of remoteOverlays.values())o.setMap(null);remoteOverlays.clear();for(const o of decor)o.setMap(null);decor.length=0;for(const o of mapBubbles.values())o.setMap(null);mapBubbles.clear();decorMade=false;center=null;map=null;mapEl.innerHTML=''}
 const h=setInterval(()=>{const g=window.ZooCafeGame;if(!g||g.__v49)return;g.__v49=true;clearInterval(h);const sr=g.setRoster.bind(g),sm=g.setRemote.bind(g);g.setRoster=l=>{roster=Array.isArray(l)?l:[];sr(l);sync()};g.setRemote=p=>{sm(p);if(p){const i=roster.findIndex(x=>x.id===p.id);i>=0?roster[i]={...roster[i],...p}:roster.push(p);sync()}}},50);
 setInterval(()=>{const m=state()?.mode||'';if(m!==lastMode){lastMode=m;m==='nearby'?open():close()}if(m==='nearby'){updateSelf();sync()}},80);
 })();

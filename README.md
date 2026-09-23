@@ -1,10 +1,16 @@
-# ZOO:CAFE v49.1 — Walkable Garden Fix
+# ZOO:CAFE v49.2 — Android GPS Fix
 
-v49에서 정원 진입 시 회색 화면만 보이는 문제를 수정한 핫픽스입니다.
+Android에서 `1km ZOO 정원을 준비하는 중…`에 멈추는 문제를 수정했습니다.
 
-- v47/v48에서 정상 작동하던 Google Maps 초기화 방식으로 되돌림
-- 지도 컨테이너가 표시된 뒤 resize + recenter 수행
-- 실제 지도 타일이 로드된 뒤에만 로딩 메시지를 닫음
-- 지도 터치 이동은 계속 잠금
-- v49의 게임 캐릭터 조이스틱 이동, 1km 주변 유저, 실루엣 제거, 채팅 얼굴, 가까운 말풍선 기능 유지
-- Google 도로명/장소명 라벨 숨김 유지
+원인:
+- v49에서 정원 입장 GPS를 `getCurrentPosition + enableHighAccuracy:true` 한 번으로 변경했습니다.
+- 일부 Android 브라우저에서는 새 고정밀 GPS fix를 기다리며 정원 초기화가 진행되지 않을 수 있습니다.
+- iPhone에서는 같은 코드가 정상 완료되어 기기별 차이가 나타났습니다.
+
+수정:
+- 입장 지역 판별에는 고정밀 GPS를 강제하지 않음
+- 최근 위치(cached/network location)를 우선 허용
+- 동시에 watchPosition으로 위치 획득을 보조
+- 첫 위치를 받는 즉시 1km 정원을 만들고 지도 중심은 이후 고정
+- 대기 중 정원을 나가면 GPS watcher 정리
+- v49.1의 지도/이동/채팅/실루엣 제거 기능 유지
