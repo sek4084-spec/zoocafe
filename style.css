@@ -493,3 +493,21 @@ body.scene-video-active .game-shell.cafe-visual #game,
   /* When the keyboard opens, keep NPC speech above the dock instead of hiding it. */
   body.chatting .mobile-npc-bubble.mung,body.chatting .mobile-npc-bubble.rabbit{top:39dvh!important;transform:scale(.94);transform-origin:center bottom}
 }
+
+/* ================================================================
+   ZOO:CAFE v54.13 — Drag Camera
+   Drag the cafe view with a finger/mouse while all HUD/UI stays fixed.
+   ================================================================ */
+.game-shell.cafe-visual .scene-video{
+  object-position:calc(50% + var(--cafe-pan-x, 0px)) calc(50% + var(--cafe-pan-y, 0px))!important;
+}
+@media (hover:none) and (pointer:coarse) and (orientation:portrait), (max-width:700px) and (orientation:portrait){
+  .game-shell.cafe-visual .scene-video{
+    object-position:calc(38% + var(--cafe-pan-x, 0px)) calc(50% + var(--cafe-pan-y, 0px))!important;
+  }
+  .game-shell.cafe-visual .mobile-npc-speech{
+    transform:translate(var(--cafe-bubble-pan-x,0px),var(--cafe-bubble-pan-y,0px));
+  }
+}
+.game-shell.cafe-visual .game-stage.cafe-camera-dragging{cursor:grabbing;touch-action:none}
+.game-shell.cafe-visual .game-stage{cursor:grab}

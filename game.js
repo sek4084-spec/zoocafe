@@ -1470,3 +1470,51 @@ z541DrawNpcBubble=function(n){
   }
   requestAnimationFrame(tick);
 })();
+
+/* ================================================================
+   ZOO:CAFE v54.13 — Drag Camera
+   - Press/drag anywhere on the cafe scene to look around.
+   - Side bars, chat composer/history, modal and buttons stay fixed/clickable.
+   - The painted NPC speech layer follows the scene on portrait phones.
+   - Multiplayer / Gemini / memory state is untouched.
+   ================================================================ */
+(function z5413DragCafeCamera(){
+  const stage=document.getElementById('gameStage');
+  if(!stage)return;
+  let active=false,pid=null,lastX=0,lastY=0,panX=0,panY=0;
+  const interactive='button,input,textarea,select,a,.cafe-sidebar,.chat-panel,.chat-input-wrap,.modal-layer,.mobile-npc-bubble';
+  const isCafe=()=>mode==='cafe';
+  const isPhone=()=>innerWidth<=700||matchMedia('(hover:none) and (pointer:coarse)').matches;
+  function limits(){
+    // Portrait video has substantial horizontal cover overflow; keep a conservative
+    // vertical range so no empty edge can be exposed on unusual phone aspect ratios.
+    return isPhone()?{x:Math.max(90,innerWidth*.34),y:Math.max(30,innerHeight*.07)}:{x:180,y:90};
+  }
+  function apply(){
+    const l=limits();panX=Math.max(-l.x,Math.min(l.x,panX));panY=Math.max(-l.y,Math.min(l.y,panY));
+    // object-position moves opposite to a grabbed picture, hence the negative values.
+    stage.style.setProperty('--cafe-pan-x',`${-panX}px`);
+    stage.style.setProperty('--cafe-pan-y',`${-panY}px`);
+    // Speech belongs to the painted NPCs, so it follows the grabbed scene; HUD does not.
+    stage.style.setProperty('--cafe-bubble-pan-x',`${panX}px`);
+    stage.style.setProperty('--cafe-bubble-pan-y',`${panY}px`);
+  }
+  function blocked(target){return !!target?.closest?.(interactive)}
+  stage.addEventListener('pointerdown',e=>{
+    if(!isCafe()||blocked(e.target)||e.button>0)return;
+    active=true;pid=e.pointerId;lastX=e.clientX;lastY=e.clientY;
+    stage.classList.add('cafe-camera-dragging');stage.setPointerCapture?.(pid);
+    e.preventDefault();
+  },{passive:false});
+  stage.addEventListener('pointermove',e=>{
+    if(!active||e.pointerId!==pid)return;
+    panX+=e.clientX-lastX;panY+=e.clientY-lastY;lastX=e.clientX;lastY=e.clientY;apply();e.preventDefault();
+  },{passive:false});
+  function end(e){
+    if(!active||(e&&e.pointerId!==pid))return;
+    active=false;pid=null;stage.classList.remove('cafe-camera-dragging');
+  }
+  stage.addEventListener('pointerup',end);stage.addEventListener('pointercancel',end);stage.addEventListener('lostpointercapture',end);
+  addEventListener('resize',apply,{passive:true});
+  apply();
+})();

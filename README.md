@@ -157,3 +157,11 @@ Gemini가 429/5xx(특히 503 과부하)를 반환하면 짧게 재시도한 뒤 
 - Mobile NPC speech uses stable DOM bubbles above each character and remains visible while typing.
 - Conversation dock reduced to preserve more of the character area.
 - Desktop v54.11 bubble layout and multiplayer/Gemini/PostgreSQL systems remain intact.
+
+
+## v54.13 Drag Camera
+- 카페 배경을 손가락/마우스로 누른 채 드래그해 시점을 이동할 수 있습니다.
+- 좌우 메뉴, 채팅창, 설정 등 HUD/UI는 화면에 고정됩니다.
+- 모바일 NPC 말풍선은 배경 속 NPC를 따라 함께 이동합니다.
+- 버튼/채팅 입력 영역에서는 카메라 드래그가 시작되지 않아 기존 조작을 방해하지 않습니다.
+- 멀티플레이, Gemini AI, PostgreSQL 기억 구조는 변경하지 않았습니다.
