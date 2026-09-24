@@ -1,6 +1,6 @@
 {
   "name": "zoocafe-online",
-  "version": "52.8.0",
+  "version": "53.0.0",
   "private": true,
   "description": "ZOO:CAFE real-time multiplayer prototype",
   "scripts": {

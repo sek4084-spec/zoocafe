@@ -83,3 +83,13 @@ Gemini가 429/5xx(특히 503 과부하)를 반환하면 짧게 재시도한 뒤 
 - Gemini가 429/503/timeout/API 키 없음 상태여도 저장된 개인 기억/공용 지식을 검색해 NPC가 자체 응답합니다.
 - Gemini가 다시 연결되면 새 지식을 계속 배우고 서버 저장소를 확장합니다.
 - Render에서 영구 보존하려면 `DATABASE_URL`을 연결하세요. DB가 없으면 JSON fallback은 배포/재시작 시 유실될 수 있습니다.
+
+
+## v53 Hybrid Brain
+- Gemini 429 circuit breaker: after a 429, Gemini sleeps for 30 minutes by default instead of being called on every chat.
+- During sleep, NPCs keep talking through ZOO:CAFE server memory/knowledge and personality fallbacks.
+- After the cooldown, the next suitable chat probes Gemini automatically; success returns to Gemini mode.
+- Explicit personal-memory teaching still works without Gemini (e.g. `내 취미는 그림 그리기야`, `아메리카노라고 기억해줘`).
+- Explicit public-knowledge teaching works without Gemini for testing: `배워둬: 주카페의 대표 메뉴는 별빛라떼야`. This is stored in the NPC knowledge store/PostgreSQL.
+- `/api/health` reports Gemini sleep state and whether the NPC DB is connected.
+- `GEMINI_QUOTA_SLEEP_MS` can override the default 30-minute cooldown.

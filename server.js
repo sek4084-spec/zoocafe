@@ -39,6 +39,17 @@ function growthFor(k){if(!npcGrowth[k])npcGrowth[k]={level:1,xp:0,talks:0,memori
 function relationName(level){if(level>=10)return '오랜 친구';if(level>=7)return '가까운 친구';if(level>=4)return '친한 사이';if(level>=2)return '낯익은 손님';return '처음 알아가는 사이'}
 function addGrowth(k,memorySaved){const g=growthFor(k);g.talks+=1;g.xp+=2+(memorySaved?3:0);if(memorySaved)g.memories+=1;g.level=Math.min(20,1+Math.floor(g.xp/20));saveNpcGrowth();return g}
 const npcRecent=new Map();
+// v53: Gemini circuit breaker. A quota/rate-limit failure temporarily sends NPCs to the local server brain.
+let geminiSleepUntil=0;
+let geminiSleepReason='';
+const GEMINI_QUOTA_SLEEP_MS=Math.max(60*1000, Number(process.env.GEMINI_QUOTA_SLEEP_MS||30*60*1000));
+function geminiSleeping(){return Date.now()<geminiSleepUntil}
+function sleepGemini(reason,ms=GEMINI_QUOTA_SLEEP_MS){
+ geminiSleepReason=reason||'temporary';geminiSleepUntil=Date.now()+ms;
+ console.warn('Gemini sleep mode:',geminiSleepReason,'until',new Date(geminiSleepUntil).toISOString());
+}
+function wakeGemini(){if(geminiSleepUntil){console.log('Gemini probe window opened; trying API again')}geminiSleepUntil=0;geminiSleepReason=''}
+
 const NPCS={
  'ai-mung':{name:'멍사자',personality:'따뜻하고 느긋한 ZOO:CAFE 카페지기. 먼저 다가가지만 부담스럽게 하지 않는다. 상대의 말을 잘 듣고 짧고 자연스럽게 대화한다.'},
  'ai-rabbit':{name:'쥐무는토끼',personality:'조용한 드라마 작가이자 이야기 기록자. 관찰력이 좋고 조금 낯을 가리며, 생각한 뒤 차분하게 말한다.'}
@@ -57,6 +68,16 @@ function learnDirectFact(k,text){
   [/^(.{1,70}?)(?:라고|라고\s*)?\s*기억해(?:줘)?[.!?]?$/,'플레이어가 기억해 달라고 한 내용: $1']
  ];
  for(const [re,fmt] of patterns){m=raw.match(re);if(m){return rememberFact(k,fmt.replace('$1',m[1].trim()))}}
+ return false;
+}
+// Explicit teaching works without Gemini. This is also useful for testing DB persistence while free quota is exhausted.
+function learnDirectKnowledge(npcId,text){
+ const raw=String(text||'').trim();let m;
+ const patterns=[
+  /^(?:배워둬|배워줘|기억해둬|지식으로 기억해줘)\s*[:：]?\s*(.{2,160})[.!?]?$/,
+  /^(.{2,160})\s*(?:라고 배워둬|라고 배워줘)[.!?]?$/
+ ];
+ for(const re of patterns){m=raw.match(re);if(m)return rememberKnowledge(npcId,m[1].trim())}
  return false;
 }
 function cleanMemoryForSpeech(v){return String(v||'').replace(/^(취향|취미|자기소개|플레이어가 기억해 달라고 한 내용):\s*/,'').replace(/^유저는\s*/,'').slice(0,70)}
@@ -102,15 +123,20 @@ function localNpcReply(user,npcId,text){
  const personal=bestPersonalMemory(k,text),knowledge=bestKnowledge(npcId,text);
  if(personal)return npcId==='ai-mung'?`기억나. ${cleanMemoryForSpeech(personal)}라고 했었지.`:`응… 기억하고 있어. ${cleanMemoryForSpeech(personal)}라고 했었지.`;
  if(knowledge)return npcId==='ai-mung'?`응, 내가 배운 걸로는 ${knowledge}`:`내가 전에 배운 내용에는 ${knowledge}`;
- const g=growthFor(k);
- if((g.talks||0)>2)return npcId==='ai-mung'?`${user.nickname}, 지금은 새로운 걸 생각해내긴 어렵지만 네가 전에 알려준 이야기는 기억하고 있어.`:`지금은 새로 생각하기 어렵지만… 우리가 나눈 이야기는 기억하고 있어.`;
- return '지금은 새로운 걸 배우기 어려워. 조금 있다 다시 이야기해줄래?';
+ const mem=(npcMemory[k]||[]),g=growthFor(k),t=String(text||'').trim();
+ if(mem.length){const latest=cleanMemoryForSpeech(mem[mem.length-1]);return npcId==='ai-mung'?`${user.nickname}, 응. 네 얘기 듣고 있어. 전에 ${latest}라고 했던 것도 기억나.`:`응… 듣고 있어. 전에 ${latest}라고 했던 것도 기억하고 있어.`}
+ if(/[?？]$/.test(t))return npcId==='ai-mung'?'음, 그건 아직 내가 배운 기억에는 없어. 네가 알려주면 기억해둘게!':'그건 아직 내 기록에는 없어… 알려주면 기억해둘게.';
+ if((g.talks||0)>2)return npcId==='ai-mung'?`${user.nickname}, 응. 계속 이야기해줘. 네가 알려준 건 하나씩 기억해둘게.`:`응… 계속 말해줘. 중요한 이야기는 기록해둘게.`;
+ return npcId==='ai-mung'?'응, 듣고 있어! 조금 더 이야기해줘.':'응… 듣고 있어. 천천히 말해줘.';
 }
-function fallbackNpc(npcId,text,user){return user?localNpcReply(user,npcId,text):'지금은 새로운 걸 배우기 어려워. 조금 있다 다시 이야기해줄래?'}
+function fallbackNpc(npcId,text,user){return user?localNpcReply(user,npcId,text):'응, 듣고 있어.'}
 async function npcThink(user,npcId,text){
- const npc=NPCS[npcId]||NPCS['ai-mung'],k=memKey(user.id,npcId),recent=recentFor(k),directLearned=learnDirectFact(k,text),mem=npcMemory[k]||[],growth=growthFor(k);
+ const npc=NPCS[npcId]||NPCS['ai-mung'],k=memKey(user.id,npcId),recent=recentFor(k),directLearned=learnDirectFact(k,text),directKnowledge=learnDirectKnowledge(npcId,text),mem=npcMemory[k]||[],growth=growthFor(k);
  const apiKey=process.env.GEMINI_API_KEY;
- if(!apiKey){const grown=addGrowth(k,false);return {reply:fallbackNpc(npcId,text,user),memory:directLearned?'direct':null,ai:false,provider:'fallback',growth:{level:grown.level,xp:grown.xp,talks:grown.talks,memories:grown.memories,relation:relationName(grown.level)}};}
+ if(!apiKey||geminiSleeping()){
+  const grown=addGrowth(k,false);
+  return {reply:directKnowledge?(npcId==='ai-mung'?'좋아, 그건 내가 배운 지식으로 기억해둘게!':'응… 그건 배운 내용으로 기록해둘게.'):fallbackNpc(npcId,text,user),memory:directLearned?'direct':null,knowledgeSaved:directKnowledge,ai:false,provider:geminiSleeping()?'server-brain-cooldown':'server-brain',growth:{level:grown.level,xp:grown.xp,talks:grown.talks,memories:grown.memories,relation:relationName(grown.level)}};
+ }
  const prompt=`너는 ZOO:CAFE의 ${npc.name}다.
 성격: ${npc.personality}
 유저 이름: ${user.nickname}
@@ -147,11 +173,11 @@ ${recent.slice(-8).map(x=>x.role+': '+x.text).join('\n')||'없음'}
       generationConfig:{maxOutputTokens:220,thinkingConfig:{thinkingLevel:model==='gemini-3.8-flash'||model==='gemini-3.6-flash'?'low':'minimal'}}
      })
     });
-    if(r.ok){data=await r.json();usedModel=model;break}
+    if(r.ok){data=await r.json();usedModel=model;wakeGemini();break}
     const body=(await r.text()).slice(0,400);
     lastError=new Error(`Gemini ${model} ${r.status} ${body}`);
     console.warn('npcThink model',model,'status',r.status);
-    if(r.status===429){rateLimited=true;break} // quota/rate limit: do not create more requests
+    if(r.status===429){rateLimited=true;sleepGemini('429 quota/rate limit');break} // circuit breaker: local brain until probe window
     if(r.status===503||r.status===500||r.status===502||r.status===504||r.status===404)continue; // immediately try next model
     break;
    }catch(err){
@@ -181,7 +207,7 @@ ${recent.slice(-8).map(x=>x.role+': '+x.text).join('\n')||'없음'}
   while(recent.length>16)recent.shift();
   let aiMemorySaved=false;
   if(memory)aiMemorySaved=rememberFact(k,memory);
-  const knowledgeSaved=learnedKnowledge?rememberKnowledge(npcId,learnedKnowledge):false;
+  const knowledgeSaved=directKnowledge||(learnedKnowledge?rememberKnowledge(npcId,learnedKnowledge):false);
   const grown=addGrowth(k,false);
   return {reply:out.slice(0,260),memory:(memory||directLearned?'saved':null),knowledgeSaved,ai:true,provider:'gemini',model:usedModel,growth:{level:grown.level,xp:grown.xp,talks:grown.talks,memories:grown.memories,relation:relationName(grown.level)}};
  }catch(e){
@@ -198,7 +224,7 @@ if (!fs.existsSync(USERS_FILE)) fs.writeFileSync(USERS_FILE, '[]');
 
 app.use(express.json({limit:'32kb'}));
 app.use(express.static(__dirname, {extensions:['html']}));
-app.get('/api/health',(req,res)=>res.json({ok:true,service:'zoocafe-online'}));
+app.get('/api/health',(req,res)=>res.json({ok:true,service:'zoocafe-online',gemini:{sleeping:geminiSleeping(),sleepUntil:geminiSleepUntil||null,reason:geminiSleepReason||null},npcDb:!!npcPool}));
 app.get('/api/maps-config',(req,res)=>{const key=process.env.GOOGLE_MAPS_API_KEY||'';res.set('Cache-Control','no-store');res.json({key,enabled:!!key});});
 
 const sessions = new Map();
