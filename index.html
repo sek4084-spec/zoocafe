@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>ZOO:CAFE</title><link rel="stylesheet" href="style.css?v=526">
+<title>ZOO:CAFE</title><link rel="stylesheet" href="style.css?v=544">
 </head>
 <body>
 <section class="auth-screen" id="authScreen">
@@ -24,14 +24,36 @@
   <header class="brandbar"><div class="brand"><span class="cup">☕</span><strong>ZOO:CAFE</strong><small>a little cafe for little stories</small></div><div class="status"><span class="dot"></span>ZOO:CAFE 광장</div></header>
   <div class="game-console">
     <section class="game-stage" id="gameStage">
-      <video id="sceneVideo" class="scene-video" muted loop playsinline hidden></video>
+      <video id="sceneVideo" class="scene-video" muted loop playsinline preload="auto" hidden aria-label="살아 움직이는 ZOO:CAFE 카페 배경"><source src="video/cafe-living-v54.mp4" type="video/mp4"></video>
       <canvas id="game" width="960" height="540" aria-label="ZOO:CAFE 게임 배경과 플레이어"></canvas>
       <canvas id="entityLayer" width="960" height="540" aria-label="ZOO:CAFE 캐릭터 레이어"></canvas>
       <div class="hud hud-controls">WASD / 방향키</div>
-      <div class="version-badge" aria-label="게임 버전">ZOO:CAFE v53 · Hybrid Brain</div><div class="interaction" id="interaction" hidden><span class="key">E</span><span id="interactionText">카페 들어가기</span></div>
+      <div class="version-badge" aria-label="게임 버전">ZOO:CAFE v54.4 · Social Video Cafe</div><div class="interaction" id="interaction" hidden><span class="key">E</span><span id="interactionText">카페 들어가기</span></div>
       <div class="mobile-controls" id="mobileControls" aria-label="모바일 게임 조작">
         <div class="virtual-stick" id="virtualStick"><div class="stick-ring"></div><div class="stick-knob" id="stickKnob"></div></div>
         <div class="mobile-actions"><button type="button" class="mobile-chat" id="mobileChatBtn">💬</button><button type="button" class="mobile-action" id="mobileActionBtn"><b>E</b><span>상호작용</span></button></div>
+      </div>
+      <nav class="cafe-sidebar cafe-sidebar-left" aria-label="카페 왼쪽 메뉴">
+        <button data-panel="menu" title="메뉴"><span>☰</span><small>메뉴</small></button>
+        <button id="cafeBarChat" title="채팅"><span>💬</span><small>채팅</small></button>
+        <button data-panel="profile" title="프로필"><span>🐾</span><small>프로필</small></button>
+        <button data-panel="inventory" title="가방"><span>👜</span><small>가방</small></button>
+      </nav>
+      <nav class="cafe-sidebar cafe-sidebar-right" aria-label="카페 오른쪽 메뉴">
+        <button data-panel="map" title="지도"><span>🗺️</span><small>지도</small></button>
+        <button id="cafeBarFriends" title="접속 친구"><span>👥</span><small>친구</small><i class="cafe-online-count">0</i></button>
+        <button id="cafeBarSound" title="BGM"><span>🎵</span><small>BGM</small></button>
+        <button data-panel="settings" title="설정"><span>⚙️</span><small>설정</small></button>
+      </nav>
+      <div class="cafe-hotspots" id="cafeHotspots" aria-label="카페 화면 메뉴">
+        <button class="cafe-hot cafe-hot-cafe" data-panel="menu" title="카페 메뉴" aria-label="카페 메뉴"></button>
+        <button class="cafe-hot cafe-hot-story" id="cafeStoryBtn" title="이야기/채팅" aria-label="이야기/채팅"></button>
+        <button class="cafe-hot cafe-hot-map" data-panel="map" title="지도" aria-label="지도"></button>
+        <button class="cafe-hot cafe-hot-friends" data-panel="profile" title="친구/프로필" aria-label="친구/프로필"></button>
+        <button class="cafe-hot cafe-hot-bag" data-panel="inventory" title="가방" aria-label="가방"></button>
+        <button class="cafe-hot cafe-hot-settings" data-panel="settings" title="설정" aria-label="설정"></button>
+        <button class="cafe-hot cafe-hot-chat" id="cafeChatBtn" title="채팅 입력" aria-label="채팅 입력"></button>
+        <button class="cafe-hot cafe-hot-quest" data-panel="menu" title="퀘스트" aria-label="퀘스트"></button>
       </div>
       <div class="chat-input-wrap" id="chatInputWrap" hidden><span class="chat-name" data-user-nickname>멍사자</span><input id="chatInput" maxlength="80" autocomplete="off" placeholder="메시지를 입력하세요..." aria-label="채팅 메시지"><span class="chat-send-hint">Enter 전송 · Esc 닫기</span></div>
     </section>
@@ -67,5 +89,5 @@
 </div>
 <audio id="cityBgm" src="audio/city-outside.mp3" preload="auto" loop></audio>
 <audio id="cafeBgm" src="audio/cafe-inside.mp3" preload="auto" loop></audio>
-<script src="assets.js?v=530"></script><script src="game.js?v=530"></script><script src="entity_engine.js?v=530"></script><script src="ui.js?v=530"></script><script src="auth.js?v=500"></script><script src="online.js?v=530"></script>
+<script src="assets.js?v=544"></script><script src="game.js?v=544"></script><script src="entity_engine.js?v=544"></script><script src="ui.js?v=544"></script><script src="auth.js?v=500"></script><script src="online.js?v=544"></script>
 </body></html>

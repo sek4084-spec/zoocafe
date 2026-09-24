@@ -77,7 +77,7 @@ function learnDirectKnowledge(npcId,text){
   /^(?:배워둬|배워줘|기억해둬|지식으로 기억해줘)\s*[:：]?\s*(.{2,160})[.!?]?$/,
   /^(.{2,160})\s*(?:라고 배워둬|라고 배워줘)[.!?]?$/
  ];
- for(const re of patterns){m=raw.match(re);if(m)return rememberKnowledge(npcId,m[1].trim())}
+ for(const re of patterns){m=raw.match(re);if(m)return rememberKnowledge(SHARED_KNOWLEDGE_ID,m[1].trim())}
  return false;
 }
 function cleanMemoryForSpeech(v){return String(v||'').replace(/^(취향|취미|자기소개|플레이어가 기억해 달라고 한 내용):\s*/,'').replace(/^유저는\s*/,'').slice(0,70)}
@@ -101,7 +101,17 @@ function returningNpcWelcomes(user){
  }
  if(out.length)saveNpcGrowth();return out;
 }
+const SHARED_KNOWLEDGE_ID='__shared_world__';
 function knowledgeFor(npcId){if(!npcKnowledge[npcId])npcKnowledge[npcId]=[];return npcKnowledge[npcId]}
+function sharedKnowledge(){return knowledgeFor(SHARED_KNOWLEDGE_ID)}
+function shareObservedMemory(userId,speakerNpcId,fact){
+ fact=normalizeMemory(fact);if(!fact)return 0;let saved=0;
+ for(const otherNpcId of Object.keys(NPCS)){
+  if(otherNpcId===speakerNpcId)continue;
+  if(rememberFact(memKey(userId,otherNpcId),'같은 자리에서 들음: '+fact))saved++;
+ }
+ return saved;
+}
 function rememberKnowledge(npcId,fact){
  fact=normalizeMemory(fact);if(!fact)return false;const list=knowledgeFor(npcId);
  if(list.some(v=>normalizeMemory(v)===fact))return false;
@@ -110,7 +120,7 @@ function rememberKnowledge(npcId,fact){
 function tokensOf(s){return String(s||'').toLowerCase().replace(/[^0-9a-zA-Z가-힣\s]/g,' ').split(/\s+/).filter(v=>v.length>1)}
 function bestKnowledge(npcId,text){
  const q=new Set(tokensOf(text));let best=null,score=0;
- for(const fact of knowledgeFor(npcId)){const toks=tokensOf(fact);const hit=toks.reduce((n,t)=>n+(q.has(t)?1:0),0);if(hit>score){score=hit;best=fact}}
+ for(const fact of [...sharedKnowledge(),...knowledgeFor(npcId)]){const toks=tokensOf(fact);const hit=toks.reduce((n,t)=>n+(q.has(t)?1:0),0);if(hit>score){score=hit;best=fact}}
  return score>0?best:null;
 }
 function bestPersonalMemory(k,text){
@@ -134,6 +144,7 @@ async function npcThink(user,npcId,text){
  const npc=NPCS[npcId]||NPCS['ai-mung'],k=memKey(user.id,npcId),recent=recentFor(k),directLearned=learnDirectFact(k,text),directKnowledge=learnDirectKnowledge(npcId,text),mem=npcMemory[k]||[],growth=growthFor(k);
  const apiKey=process.env.GEMINI_API_KEY;
  if(!apiKey||geminiSleeping()){
+  if(directLearned)shareObservedMemory(user.id,npcId,text);
   const grown=addGrowth(k,false);
   return {reply:directKnowledge?(npcId==='ai-mung'?'좋아, 그건 내가 배운 지식으로 기억해둘게!':'응… 그건 배운 내용으로 기록해둘게.'):fallbackNpc(npcId,text,user),memory:directLearned?'direct':null,knowledgeSaved:directKnowledge,ai:false,provider:geminiSleeping()?'server-brain-cooldown':'server-brain',growth:{level:grown.level,xp:grown.xp,talks:grown.talks,memories:grown.memories,relation:relationName(grown.level)}};
  }
@@ -142,7 +153,8 @@ async function npcThink(user,npcId,text){
 유저 이름: ${user.nickname}
 NPC 성장 상태: 레벨 ${growth.level}, 관계 '${relationName(growth.level)}', 지금까지 대화 ${growth.talks}회, 기억 ${growth.memories}개
 이 유저에 대한 장기 기억: ${mem.length?mem.slice(-12).join(' / '):'아직 없음'}
-${npc.name}가 지금까지 배운 공용 지식: ${knowledgeFor(npcId).length?knowledgeFor(npcId).slice(-20).join(' / '):'아직 없음'}
+ZOO:CAFE NPC들이 함께 배운 공용 지식: ${sharedKnowledge().length?sharedKnowledge().slice(-20).join(' / '):'아직 없음'}
+${npc.name}만의 개별 지식: ${knowledgeFor(npcId).length?knowledgeFor(npcId).slice(-10).join(' / '):'아직 없음'}
 최근 대화:
 ${recent.slice(-8).map(x=>x.role+': '+x.text).join('\n')||'없음'}
 
@@ -206,12 +218,14 @@ ${recent.slice(-8).map(x=>x.role+': '+x.text).join('\n')||'없음'}
   recent.push({role:'user',text:String(text).slice(0,300)},{role:npc.name,text:out.slice(0,300)});
   while(recent.length>16)recent.shift();
   let aiMemorySaved=false;
-  if(memory)aiMemorySaved=rememberFact(k,memory);
-  const knowledgeSaved=directKnowledge||(learnedKnowledge?rememberKnowledge(npcId,learnedKnowledge):false);
+  if(memory){aiMemorySaved=rememberFact(k,memory);shareObservedMemory(user.id,npcId,memory)}
+  else if(directLearned){shareObservedMemory(user.id,npcId,text)}
+  const knowledgeSaved=directKnowledge||(learnedKnowledge?rememberKnowledge(SHARED_KNOWLEDGE_ID,learnedKnowledge):false);
   const grown=addGrowth(k,false);
   return {reply:out.slice(0,260),memory:(memory||directLearned?'saved':null),knowledgeSaved,ai:true,provider:'gemini',model:usedModel,growth:{level:grown.level,xp:grown.xp,talks:grown.talks,memories:grown.memories,relation:relationName(grown.level)}};
  }catch(e){
   console.error('npcThink',e.message);
+  if(directLearned)shareObservedMemory(user.id,npcId,text);
   const grown=addGrowth(k,false);return {reply:fallbackNpc(npcId,text,user),memory:directLearned?'direct':null,ai:false,provider:'fallback',growth:{level:grown.level,xp:grown.xp,talks:grown.talks,memories:grown.memories,relation:relationName(grown.level)}};
  }
 }

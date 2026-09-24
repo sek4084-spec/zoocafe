@@ -55,7 +55,7 @@
  function render(){
    ec.clearRect(0,0,960,540);
    try{
-     if(typeof mode!=='undefined'&&mode==='cafe'&&typeof aiFriends!=='undefined'){
+     if(typeof mode!=='undefined'&&mode==='cafe'&&typeof aiFriends!=='undefined'&&!document.querySelector('.game-shell')?.classList.contains('cafe-visual')){
        const mobile=typeof Z40_MOBILE==='function'&&Z40_MOBILE();
        if(mobile){
          const scale=1.26,cam=(typeof z40CafeCam!=='undefined'?z40CafeCam:{x:0,y:0});

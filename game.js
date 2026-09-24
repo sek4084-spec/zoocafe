@@ -1102,3 +1102,257 @@ try{
   enterNearbyFromCafe=async function(){ exit(); return false; };
   requestNearbyLocation=function(){ return Promise.resolve(false); };
 }catch(e){}
+
+
+/* ================================================================
+   ZOO:CAFE v54 — Illustrated Café Scene
+   Replaces only the café visual layer. World/network/AI logic stays intact.
+   ================================================================ */
+const z54CafeBg=new Image();
+let z54CafeBgReady=false;
+z54CafeBg.onload=()=>{z54CafeBgReady=true};
+z54CafeBg.src='images/cafe-illustrated-v54.png';
+const z54OldDrawCafe=drawCafe;
+drawCafe=function(){
+  if(!z54CafeBgReady){z54OldDrawCafe();return;}
+  ctx.save();
+  ctx.imageSmoothingEnabled=true;
+  ctx.drawImage(z54CafeBg,0,0,W,H);
+  // Gentle veil behind moving sprites so live characters remain readable.
+  const g=ctx.createLinearGradient(0,H*.45,0,H);
+  g.addColorStop(0,'rgba(20,12,8,0)');g.addColorStop(1,'rgba(20,12,8,.08)');
+  ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
+  ctx.restore();
+};
+const z54DrawBase=draw;
+draw=function(){
+  document.querySelector('.game-shell')?.classList.toggle('cafe-visual',mode==='cafe');
+  z54DrawBase();
+};
+addEventListener('DOMContentLoaded',()=>{
+  const chat=()=>{try{openChat()}catch(e){document.getElementById('chatInputWrap').hidden=false;document.getElementById('chatInput')?.focus()}};
+  document.getElementById('cafeChatBtn')?.addEventListener('click',chat);
+  document.getElementById('cafeStoryBtn')?.addEventListener('click',chat);
+});
+
+/* ================================================================
+   ZOO:CAFE v54.1 — Background Cast Café
+   In the illustrated café, the characters painted into the background
+   ARE the AI NPCs. No live player/NPC/remote sprites are drawn indoors.
+   Player text is input-only; only NPC replies appear as speech bubbles.
+   ================================================================ */
+let z541Turn=0;
+const z541NpcAnchors={
+  'ai-mung':{x:338,y:385},
+  'ai-rabbit':{x:503,y:385}
+};
+
+// In this fixed illustrated scene, proximity no longer chooses the speaker.
+// Alternate the visible responder so both personalities take turns; v53.1
+// server-side shared-ears memory still lets the other NPC learn what was said.
+aiHearPlayer=function(text){
+  if(mode!=='cafe')return;
+  const order=['ai-mung','ai-rabbit'];
+  const id=order[(z541Turn++)%order.length];
+  const n=aiFriends.find(v=>v.id===id);
+  if(!n)return;
+  setTimeout(()=>{if(mode==='cafe')aiReply(n,text)},140);
+};
+window.ZooCafeAI.hear=aiHearPlayer;
+
+function z541DrawNpcBubble(n){
+  const a=z541NpcAnchors[n.id];if(!a)return;
+  if(n.thinking){bubbleText('...',a.x,a.y);return;}
+  if(n.bubble&&performance.now()<n.bubbleUntil)bubbleText(n.bubble,a.x,a.y);
+}
+
+const z541DrawBefore=draw;
+draw=function(){
+  document.querySelector('.game-shell')?.classList.toggle('cafe-visual',mode==='cafe');
+  if(mode!=='cafe'){z541DrawBefore();return;}
+  // Background-only café: no player sprite, no multiplayer avatars, no pixel NPCs.
+  ctx.clearRect(0,0,W,H);
+  drawCafe();
+  for(const n of aiFriends)if(n.room==='cafe')z541DrawNpcBubble(n);
+  interaction.hidden=true;
+};
+
+/* ================================================================
+   ZOO:CAFE v54.2 — Storybook Bubble Polish
+   - crops the baked decorative bottom chat strip out of the café artwork
+   - keeps only the real interactive input when the player chooses to chat
+   - NPC replies use warm parchment bubbles matched to the illustration
+   ================================================================ */
+const z542DrawCafeBase=drawCafe;
+drawCafe=function(){
+  if(!z54CafeBgReady){z54OldDrawCafe();return;}
+  ctx.save();ctx.imageSmoothingEnabled=true;
+  // The source artwork contains a decorative, non-functional bottom chat bar.
+  // Crop that strip away and fit the clean scene to the game canvas.
+  const cropH=Math.floor(z54CafeBg.naturalHeight*0.885);
+  ctx.drawImage(z54CafeBg,0,0,z54CafeBg.naturalWidth,cropH,0,0,W,H);
+  const g=ctx.createLinearGradient(0,H*.58,0,H);
+  g.addColorStop(0,'rgba(34,20,11,0)');g.addColorStop(1,'rgba(34,20,11,.035)');
+  ctx.fillStyle=g;ctx.fillRect(0,0,W,H);ctx.restore();
+};
+
+// Re-aligned to the characters after the clean artwork crop.
+z541NpcAnchors['ai-mung']={x:338,y:424};
+z541NpcAnchors['ai-rabbit']={x:503,y:424};
+
+function z542StoryBubble(text,x,y,thinking=false,npcId=''){
+  if(!text&&!thinking)return;
+  ctx.save();
+  const fontSize=13,lineH=19,padX=15,padY=10,maxW=300,minW=thinking?54:72;
+  ctx.font=`700 ${fontSize}px "Noto Sans KR","Malgun Gothic",sans-serif`;
+  const raw=thinking?'…':String(text),lines=[];let line='';
+  for(const ch of [...raw]){const test=line+ch;if(ctx.measureText(test).width>maxW-padX*2&&line){lines.push(line);line=ch}else line=test}
+  if(line)lines.push(line);const visible=lines.slice(0,4);if(lines.length>4)visible[3]=visible[3].slice(0,-1)+'…';
+  const contentW=Math.max(...visible.map(v=>ctx.measureText(v).width),0);
+  const tw=Math.max(minW,Math.min(maxW,contentW+padX*2)),bh=Math.max(39,visible.length*lineH+padY*2);
+  const bx=clamp(x-tw/2,12,W-tw-12),by=clamp(y-104-(bh-39),12,H-bh-20);
+  // soft shadow + parchment body
+  RR(bx+3,by+5,tw,bh,13,'rgba(43,25,14,.22)');
+  RR(bx,by,tw,bh,13,'rgba(255,246,222,.96)','#8b6747',1.5);
+  // tiny warm accent line differentiates the two characters without looking gamey
+  ctx.fillStyle=npcId==='ai-rabbit'?'rgba(202,142,132,.72)':'rgba(167,112,62,.72)';
+  ctx.fillRect(bx+14,by+7,Math.min(42,tw-28),2);
+  // tail
+  ctx.fillStyle='rgba(255,246,222,.96)';ctx.strokeStyle='#8b6747';ctx.lineWidth=1.5;
+  ctx.beginPath();const tx=clamp(x,bx+18,bx+tw-18);ctx.moveTo(tx-7,by+bh-1);ctx.lineTo(tx,by+bh+8);ctx.lineTo(tx+8,by+bh-1);ctx.closePath();ctx.fill();ctx.stroke();
+  // redraw bottom edge over tail seams
+  ctx.strokeStyle='rgba(139,103,71,.45)';ctx.beginPath();ctx.moveTo(bx+12,by+bh);ctx.lineTo(tx-7,by+bh);ctx.moveTo(tx+8,by+bh);ctx.lineTo(bx+tw-12,by+bh);ctx.stroke();
+  ctx.fillStyle='#4a3425';ctx.textAlign='center';ctx.textBaseline='middle';
+  visible.forEach((v,i)=>ctx.fillText(v,bx+tw/2,by+padY+lineH*(i+.5)+2));ctx.restore();
+}
+
+z541DrawNpcBubble=function(n){
+  const a=z541NpcAnchors[n.id];if(!a)return;
+  if(n.thinking){z542StoryBubble('…',a.x,a.y,true,n.id);return;}
+  if(n.bubble&&performance.now()<n.bubbleUntil)z542StoryBubble(n.bubble,a.x,a.y,false,n.id);
+};
+
+/* ================================================================
+   ZOO:CAFE v54.3 — Living Video Cafe
+   The uploaded 10-second Flow clip is the real cafe background.
+   Canvas stays transparent indoors and is used only for AI bubbles.
+   The clip loops continuously. Its own ambience is enabled after the
+   first cafe interaction (browser autoplay policies require a gesture).
+   ================================================================ */
+const z543CafeVideo=document.getElementById('sceneVideo');
+let z543VideoSoundUnlocked=false;
+function z543VideoOn(){
+  if(!z543CafeVideo)return;
+  z543CafeVideo.hidden=false;
+  document.body.classList.add('scene-video-active');
+  // Start muted so every browser can autoplay. First user gesture unlocks audio.
+  if(!z543VideoSoundUnlocked)z543CafeVideo.muted=true;
+  z543CafeVideo.play().catch(()=>{});
+  if(z543VideoSoundUnlocked&&cafeBgm)cafeBgm.pause();
+}
+function z543VideoOff(){
+  if(!z543CafeVideo)return;
+  z543CafeVideo.pause();
+  z543CafeVideo.hidden=true;
+  document.body.classList.remove('scene-video-active');
+}
+function z543UnlockVideoSound(){
+  if(mode!=='cafe'||!z543CafeVideo)return;
+  z543VideoSoundUnlocked=true;
+  z543CafeVideo.muted=false;
+  z543CafeVideo.volume=Math.max(.15,Math.min(1,bgmVolume));
+  if(cafeBgm)cafeBgm.pause();
+  z543CafeVideo.play().catch(()=>{});
+}
+addEventListener('pointerdown',z543UnlockVideoSound,{passive:true});
+addEventListener('keydown',()=>{if(mode==='cafe')z543UnlockVideoSound()});
+
+// Keep the old world BGM, but let the uploaded video provide the cafe ambience.
+const z543SyncBgmBase=syncBgm;
+syncBgm=function(){
+  if(mode==='cafe'){
+    if(cityBgm)cityBgm.pause();
+    if(cafeBgm)cafeBgm.pause();
+    z543VideoOn();
+    return;
+  }
+  z543VideoOff();
+  z543SyncBgmBase();
+};
+
+// Final cafe renderer: video below, storybook AI bubbles above.
+const z543DrawBase=draw;
+draw=function(){
+  document.querySelector('.game-shell')?.classList.toggle('cafe-visual',mode==='cafe');
+  if(mode!=='cafe'){
+    z543VideoOff();
+    z543DrawBase();
+    return;
+  }
+  z543VideoOn();
+  ctx.clearRect(0,0,W,H);
+  for(const n of aiFriends)if(n.room==='cafe')z541DrawNpcBubble(n);
+  interaction.hidden=true;
+};
+
+// If the game is restored/reloaded while already in the cafe, synchronize video.
+addEventListener('visibilitychange',()=>{
+  if(document.hidden){z543CafeVideo?.pause();return;}
+  if(mode==='cafe')z543VideoOn();
+});
+
+
+/* ================================================================
+   ZOO:CAFE v54.4 — Social Video Cafe
+   Clear character faces, clickable sidebars, café BGM + video ambience.
+   Multiplayer/network state is untouched.
+   ================================================================ */
+// Speech tails point above the characters instead of across their faces.
+z541NpcAnchors['ai-mung']={x:360,y:330};
+z541NpcAnchors['ai-rabbit']={x:545,y:330};
+
+// Keep the uploaded wave/lantern ambience and layer the café BGM beneath it.
+function z544CafeAudio(){
+  if(mode!=='cafe')return;
+  if(!bgmStarted)bgmStarted=true;
+  if(!bgmEnabled){ if(cafeBgm)cafeBgm.pause(); return; }
+  if(cafeBgm){cafeBgm.volume=Math.max(.08,Math.min(.34,bgmVolume*.58));cafeBgm.play().catch(()=>{});}
+  if(z543CafeVideo){
+    z543CafeVideo.volume=Math.max(.10,Math.min(.42,bgmVolume*.72));
+    if(z543VideoSoundUnlocked)z543CafeVideo.muted=false;
+    z543CafeVideo.play().catch(()=>{});
+  }
+}
+const z544SyncBgmBase=syncBgm;
+syncBgm=function(){
+  if(mode==='cafe'){
+    if(cityBgm)cityBgm.pause();
+    z543VideoOn();z544CafeAudio();return;
+  }
+  z544SyncBgmBase();
+};
+const z544UnlockBase=z543UnlockVideoSound;
+z543UnlockVideoSound=function(){z544UnlockBase();z544CafeAudio();};
+
+addEventListener('DOMContentLoaded',()=>{
+  const chat=()=>{try{openChat()}catch(e){chatInputWrap.hidden=false;chatInput?.focus()}};
+  document.getElementById('cafeBarChat')?.addEventListener('click',chat);
+  const sound=document.getElementById('cafeBarSound');
+  sound?.addEventListener('click',()=>{
+    bgmEnabled=!bgmEnabled;
+    sound.classList.toggle('sound-off',!bgmEnabled);
+    sound.querySelector('span').textContent=bgmEnabled?'🎵':'🔇';
+    if(bgmEnabled){bgmStarted=true;z543VideoSoundUnlocked=true;if(z543CafeVideo)z543CafeVideo.muted=false;z544CafeAudio();}
+    else{if(cafeBgm)cafeBgm.pause();if(z543CafeVideo)z543CafeVideo.muted=true;}
+  });
+  document.getElementById('cafeBarFriends')?.addEventListener('click',()=>{
+    // Existing multiplayer roster is already rendered in .player-list; expose it in a small modal via profile/menu UI fallback.
+    document.querySelector('[data-panel="profile"]')?.click();
+  });
+});
+
+// Mirror current-room online count into the café bar without changing network logic.
+setInterval(()=>{
+  const n=document.querySelectorAll('.player-list > *').length;
+  document.querySelectorAll('.cafe-online-count').forEach(el=>el.textContent=String(n+1));
+},1000);

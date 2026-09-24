@@ -203,3 +203,60 @@ body.scene-video-active #game{background:transparent!important}
   #game{display:block!important;visibility:visible!important;opacity:1!important;background:#72b84f!important;}
   #entityLayer{display:block!important;visibility:visible!important;opacity:1!important;background:transparent!important;}
 }
+
+
+/* v54 — illustrated café scene + real clickable hotspots */
+.cafe-hotspots{display:none;position:absolute;inset:0;z-index:35;pointer-events:none}
+.game-shell.cafe-visual .cafe-hotspots{display:block}
+.cafe-hot{position:absolute;border:0;background:transparent;cursor:pointer;pointer-events:auto;border-radius:14px;color:transparent}
+.cafe-hot:hover{background:rgba(255,239,197,.12);box-shadow:inset 0 0 0 2px rgba(255,235,190,.28)}
+.cafe-hot:focus-visible{outline:3px solid #ffe1a1;outline-offset:2px}
+.cafe-hot-cafe{left:1.2%;top:17.2%;width:11.2%;height:7.2%}
+.cafe-hot-story{left:1.2%;top:24.8%;width:11.2%;height:7.2%}
+.cafe-hot-map{left:1.2%;top:32.5%;width:11.2%;height:7.2%}
+.cafe-hot-friends{left:1.2%;top:40.2%;width:11.2%;height:7.2%}
+.cafe-hot-bag{left:1.2%;top:47.8%;width:11.2%;height:7.2%}
+.cafe-hot-settings{left:1.2%;top:55.5%;width:11.2%;height:7.2%}
+.cafe-hot-chat{left:29%;bottom:1.5%;width:51%;height:12%}
+.cafe-hot-quest{right:1.2%;bottom:18%;width:15%;height:8%}
+.game-shell.cafe-visual{width:min(1536px,99vw)}
+.game-shell.cafe-visual .brandbar,.game-shell.cafe-visual .caption{display:none}
+.game-shell.cafe-visual .game-console{display:block}
+.game-shell.cafe-visual .game-stage{width:100%;aspect-ratio:3/2;border:0;border-radius:0;background:#33261d;box-shadow:0 16px 50px #0009}
+.game-shell.cafe-visual .side-panel,.game-shell.cafe-visual>.game-console>.chat-panel,.game-shell.cafe-visual .hud-controls,.game-shell.cafe-visual .interaction{display:none!important}
+.game-shell.cafe-visual canvas{image-rendering:auto}
+.game-shell.cafe-visual #game{z-index:1;position:absolute;inset:0}
+.game-shell.cafe-visual #entityLayer{z-index:10;position:absolute;inset:0;pointer-events:none}
+.game-shell.cafe-visual .version-badge{z-index:40;opacity:.58}
+@media(max-width:700px){.game-shell.cafe-visual{width:100vw}.game-shell.cafe-visual .game-stage{aspect-ratio:3/2}.cafe-hot{border-radius:8px}}
+
+/* v54.1 — illustrated café characters are part of the scene itself */
+.game-shell.cafe-visual #entityLayer{display:none!important}
+.game-shell.cafe-visual .mobile-controls{display:none!important}
+
+/* v54.2 — quiet storybook speech UI */
+.game-shell.cafe-visual .chat-input-wrap{
+  left:50%;right:auto;bottom:2.2%;transform:translateX(-50%);width:min(720px,82%);
+  background:rgba(55,35,23,.92);border:1px solid rgba(238,205,145,.65);
+  border-radius:18px;box-shadow:0 8px 28px rgba(24,13,7,.34);backdrop-filter:blur(7px);
+}
+.game-shell.cafe-visual .chat-input-wrap input{font-family:"Noto Sans KR","Malgun Gothic",sans-serif;color:#fff7e8}
+.game-shell.cafe-visual .chat-name,.game-shell.cafe-visual .chat-send-hint{color:#ead2a5}
+
+/* v54.3 — uploaded Flow video is the full living cafe background */
+.game-shell.cafe-visual .game-stage{aspect-ratio:16/9;background:#24170f;overflow:hidden}
+.game-shell.cafe-visual .scene-video{display:block;object-fit:cover;background:#24170f}
+.game-shell.cafe-visual #game{background:transparent!important}
+body.scene-video-active .game-shell.cafe-visual #game{background:transparent!important}
+@media(max-width:700px){.game-shell.cafe-visual .game-stage{aspect-ratio:16/9}}
+
+
+/* v54.4 — social video café controls */
+.cafe-sidebar{display:none;position:absolute;top:50%;transform:translateY(-50%);z-index:62;flex-direction:column;gap:10px;padding:10px 8px;border:1px solid rgba(238,205,145,.48);border-radius:20px;background:rgba(48,29,18,.66);box-shadow:0 10px 34px rgba(15,8,4,.30);backdrop-filter:blur(8px)}
+.game-shell.cafe-visual .cafe-sidebar{display:flex}.cafe-sidebar-left{left:14px}.cafe-sidebar-right{right:14px}
+.cafe-sidebar button{position:relative;width:58px;min-height:58px;border:1px solid rgba(255,225,170,.22);border-radius:15px;background:rgba(80,49,29,.72);color:#fff1d2;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;box-shadow:inset 0 1px rgba(255,255,255,.08);transition:.15s ease}
+.cafe-sidebar button:hover{transform:translateY(-1px);background:rgba(112,72,42,.86);border-color:rgba(255,225,170,.5)}
+.cafe-sidebar button:active{transform:scale(.96)}.cafe-sidebar button>span{font-size:22px;line-height:1}.cafe-sidebar button>small{font:700 10px/1.1 "Noto Sans KR","Malgun Gothic",sans-serif;color:#ead5ad}
+.cafe-sidebar button.sound-off{opacity:.62}.cafe-online-count{position:absolute;right:-3px;top:-4px;min-width:18px;height:18px;padding:0 4px;border-radius:9px;background:#7b9b67;color:white;font:800 10px/18px Arial;font-style:normal}
+.game-shell.cafe-visual .cafe-hotspots{display:none!important}
+@media(max-width:700px){.cafe-sidebar{gap:5px;padding:6px 5px;border-radius:14px}.cafe-sidebar-left{left:6px}.cafe-sidebar-right{right:6px}.cafe-sidebar button{width:43px;min-height:43px;border-radius:11px}.cafe-sidebar button>span{font-size:17px}.cafe-sidebar button>small{font-size:8px}.cafe-online-count{transform:scale(.85)}}

@@ -93,3 +93,33 @@ Gemini가 429/5xx(특히 503 과부하)를 반환하면 짧게 재시도한 뒤 
 - Explicit public-knowledge teaching works without Gemini for testing: `배워둬: 주카페의 대표 메뉴는 별빛라떼야`. This is stored in the NPC knowledge store/PostgreSQL.
 - `/api/health` reports Gemini sleep state and whether the NPC DB is connected.
 - `GEMINI_QUOTA_SLEEP_MS` can override the default 30-minute cooldown.
+
+
+## v53.1 Shared Ears
+- 대답한 NPC는 기존처럼 개인 기억을 직접 저장합니다.
+- 같은 카페에 있는 다른 NPC도 플레이어가 직접 밝힌 기억/AI가 추출한 장기 기억을 `같은 자리에서 들음`으로 별도 저장합니다.
+- 공용 지식은 이제 `__shared_world__` 저장소에 기록되어 멍사자와 쥐무는토끼가 함께 사용할 수 있습니다.
+- NPC별 개인 경험/관계 성장 데이터는 계속 분리됩니다.
+- PostgreSQL 연결 시 이 기억/공용 지식도 재배포 후 유지됩니다.
+
+
+## v54 · Illustrated Cafe
+- Café interior visual replaced with the approved illustrated seaside-cave café artwork.
+- The illustrated left menu and bottom chat area now have real clickable HTML hotspots.
+- Cafe/menu, story/chat, map, friends/profile, bag, settings, chat input, and quest areas are clickable.
+- Existing multiplayer, AI memory, PostgreSQL persistence, movement and NPC logic are preserved.
+- Outside world remains unchanged.
+
+## v54.3 · Living Video Cafe
+- 카페 정지 이미지를 사용자가 만든 10초 Flow MP4(`video/cafe-living-v54.mp4`)로 교체했습니다.
+- 카페에서는 영상이 자동 재생/무한 반복되고, 캔버스는 AI 말풍선만 그립니다.
+- 브라우저 자동재생 정책 때문에 최초 재생은 음소거로 시작하며, 카페에서 첫 클릭/터치/키 입력 후 영상 자체 오디오가 활성화됩니다.
+- 영상 오디오가 활성화되면 기존 카페 BGM은 중지되어 파도/환경음과 겹치지 않습니다.
+- 기존 Gemini/서버 두뇌/PostgreSQL/Shared Ears/클릭 UI/채팅 입력 기능은 유지합니다.
+
+
+## v54.4 Social Video Cafe
+- NPC speech bubbles moved above faces.
+- Clickable left/right cafe sidebars added.
+- Cafe BGM now plays together with the uploaded video ambience after browser audio unlock.
+- Existing WebSocket multiplayer, Gemini hybrid brain and PostgreSQL memory are unchanged.
