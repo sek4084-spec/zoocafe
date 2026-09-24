@@ -7,6 +7,7 @@ const app = express();
 const { WebSocketServer } = require('ws');
 const NPC_MEMORY_FILE=path.join(__dirname,'data','npc-memory.json');
 const NPC_GROWTH_FILE=path.join(__dirname,'data','npc-growth.json');
+const NPC_KNOWLEDGE_FILE=path.join(__dirname,'data','npc-knowledge.json');
 const {Pool}=require('pg');
 const dbUrl=process.env.DATABASE_URL||'';
 let npcPool=null;
@@ -16,8 +17,8 @@ async function initNpcDb(){
  try{
   npcPool=new Pool({connectionString:dbUrl,ssl:process.env.NODE_ENV==='production'?{rejectUnauthorized:false}:undefined});
   await npcPool.query(`CREATE TABLE IF NOT EXISTS zoocafe_npc_state (id TEXT PRIMARY KEY, payload JSONB NOT NULL, updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW())`);
-  const r=await npcPool.query(`SELECT id,payload FROM zoocafe_npc_state WHERE id IN ('memory','growth')`);
-  for(const row of r.rows){if(row.id==='memory'&&row.payload)npcMemory=row.payload;if(row.id==='growth'&&row.payload)npcGrowth=row.payload}
+  const r=await npcPool.query(`SELECT id,payload FROM zoocafe_npc_state WHERE id IN ('memory','growth','knowledge')`);
+  for(const row of r.rows){if(row.id==='memory'&&row.payload)npcMemory=row.payload;if(row.id==='growth'&&row.payload)npcGrowth=row.payload;if(row.id==='knowledge'&&row.payload)npcKnowledge=row.payload}
   console.log('NPC persistent memory: PostgreSQL connected');return true;
  }catch(e){console.warn('NPC PostgreSQL unavailable; using local JSON fallback:',e.message);npcPool=null;return false}
 }
@@ -30,6 +31,9 @@ let npcMemory=loadNpcMemory();
 function saveNpcMemory(){try{fs.mkdirSync(path.dirname(NPC_MEMORY_FILE),{recursive:true});fs.writeFileSync(NPC_MEMORY_FILE,JSON.stringify(npcMemory,null,2))}catch(e){console.error('npc memory save',e.message)};persistNpcDb('memory',npcMemory)}
 function loadNpcGrowth(){try{return JSON.parse(fs.readFileSync(NPC_GROWTH_FILE,'utf8'))}catch(e){return {}}}
 let npcGrowth=loadNpcGrowth();
+function loadNpcKnowledge(){try{return JSON.parse(fs.readFileSync(NPC_KNOWLEDGE_FILE,'utf8'))}catch(e){return {}}}
+let npcKnowledge=loadNpcKnowledge();
+function saveNpcKnowledge(){try{fs.mkdirSync(path.dirname(NPC_KNOWLEDGE_FILE),{recursive:true});fs.writeFileSync(NPC_KNOWLEDGE_FILE,JSON.stringify(npcKnowledge,null,2))}catch(e){console.error('npc knowledge save',e.message)};persistNpcDb('knowledge',npcKnowledge)}
 function saveNpcGrowth(){try{fs.mkdirSync(path.dirname(NPC_GROWTH_FILE),{recursive:true});fs.writeFileSync(NPC_GROWTH_FILE,JSON.stringify(npcGrowth,null,2))}catch(e){console.error('npc growth save',e.message)};persistNpcDb('growth',npcGrowth)}
 function growthFor(k){if(!npcGrowth[k])npcGrowth[k]={level:1,xp:0,talks:0,memories:0,lastSeenAt:0,lastWelcomeAt:0};return npcGrowth[k]}
 function relationName(level){if(level>=10)return '오랜 친구';if(level>=7)return '가까운 친구';if(level>=4)return '친한 사이';if(level>=2)return '낯익은 손님';return '처음 알아가는 사이'}
@@ -76,16 +80,43 @@ function returningNpcWelcomes(user){
  }
  if(out.length)saveNpcGrowth();return out;
 }
-function fallbackNpc(npcId,text){return '이해하기 쉽게 다시 말해줄래?'}
+function knowledgeFor(npcId){if(!npcKnowledge[npcId])npcKnowledge[npcId]=[];return npcKnowledge[npcId]}
+function rememberKnowledge(npcId,fact){
+ fact=normalizeMemory(fact);if(!fact)return false;const list=knowledgeFor(npcId);
+ if(list.some(v=>normalizeMemory(v)===fact))return false;
+ list.push(fact);npcKnowledge[npcId]=list.slice(-120);saveNpcKnowledge();return true;
+}
+function tokensOf(s){return String(s||'').toLowerCase().replace(/[^0-9a-zA-Z가-힣\s]/g,' ').split(/\s+/).filter(v=>v.length>1)}
+function bestKnowledge(npcId,text){
+ const q=new Set(tokensOf(text));let best=null,score=0;
+ for(const fact of knowledgeFor(npcId)){const toks=tokensOf(fact);const hit=toks.reduce((n,t)=>n+(q.has(t)?1:0),0);if(hit>score){score=hit;best=fact}}
+ return score>0?best:null;
+}
+function bestPersonalMemory(k,text){
+ const q=new Set(tokensOf(text));let best=null,score=0;
+ for(const fact of (npcMemory[k]||[])){const toks=tokensOf(fact);const hit=toks.reduce((n,t)=>n+(q.has(t)?1:0),0);if(hit>score){score=hit;best=fact}}
+ return score>0?best:null;
+}
+function localNpcReply(user,npcId,text){
+ const k=memKey(user.id,npcId),npc=NPCS[npcId]||NPCS['ai-mung'];
+ const personal=bestPersonalMemory(k,text),knowledge=bestKnowledge(npcId,text);
+ if(personal)return npcId==='ai-mung'?`기억나. ${cleanMemoryForSpeech(personal)}라고 했었지.`:`응… 기억하고 있어. ${cleanMemoryForSpeech(personal)}라고 했었지.`;
+ if(knowledge)return npcId==='ai-mung'?`응, 내가 배운 걸로는 ${knowledge}`:`내가 전에 배운 내용에는 ${knowledge}`;
+ const g=growthFor(k);
+ if((g.talks||0)>2)return npcId==='ai-mung'?`${user.nickname}, 지금은 새로운 걸 생각해내긴 어렵지만 네가 전에 알려준 이야기는 기억하고 있어.`:`지금은 새로 생각하기 어렵지만… 우리가 나눈 이야기는 기억하고 있어.`;
+ return '지금은 새로운 걸 배우기 어려워. 조금 있다 다시 이야기해줄래?';
+}
+function fallbackNpc(npcId,text,user){return user?localNpcReply(user,npcId,text):'지금은 새로운 걸 배우기 어려워. 조금 있다 다시 이야기해줄래?'}
 async function npcThink(user,npcId,text){
  const npc=NPCS[npcId]||NPCS['ai-mung'],k=memKey(user.id,npcId),recent=recentFor(k),directLearned=learnDirectFact(k,text),mem=npcMemory[k]||[],growth=growthFor(k);
  const apiKey=process.env.GEMINI_API_KEY;
- if(!apiKey){const grown=addGrowth(k,false);return {reply:fallbackNpc(npcId,text),memory:directLearned?'direct':null,ai:false,provider:'fallback',growth:{level:grown.level,xp:grown.xp,talks:grown.talks,memories:grown.memories,relation:relationName(grown.level)}};}
+ if(!apiKey){const grown=addGrowth(k,false);return {reply:fallbackNpc(npcId,text,user),memory:directLearned?'direct':null,ai:false,provider:'fallback',growth:{level:grown.level,xp:grown.xp,talks:grown.talks,memories:grown.memories,relation:relationName(grown.level)}};}
  const prompt=`너는 ZOO:CAFE의 ${npc.name}다.
 성격: ${npc.personality}
 유저 이름: ${user.nickname}
 NPC 성장 상태: 레벨 ${growth.level}, 관계 '${relationName(growth.level)}', 지금까지 대화 ${growth.talks}회, 기억 ${growth.memories}개
 이 유저에 대한 장기 기억: ${mem.length?mem.slice(-12).join(' / '):'아직 없음'}
+${npc.name}가 지금까지 배운 공용 지식: ${knowledgeFor(npcId).length?knowledgeFor(npcId).slice(-20).join(' / '):'아직 없음'}
 최근 대화:
 ${recent.slice(-8).map(x=>x.role+': '+x.text).join('\n')||'없음'}
 
@@ -96,7 +127,9 @@ ${recent.slice(-8).map(x=>x.role+': '+x.text).join('\n')||'없음'}
 대화가 쌓일수록 위 성장 상태와 장기 기억을 참고해 조금 더 친숙하고 자연스럽게 반응해라. 단, 갑자기 과도하게 친한 척하지 마라.
 상대가 말하지 않은 사실을 기억한다고 꾸며내지 마라.
 중요한 장기 기억이 생겼다면 마지막 줄에 MEMORY: 로 시작해 한 문장으로 적어라.
-저장할 가치가 없으면 MEMORY: NONE 이라고 적어라.`;
+저장할 가치가 없으면 MEMORY: NONE 이라고 적어라.
+유저의 개인 정보가 아니라 NPC가 앞으로도 사용할 수 있는 일반 지식/규칙/사실을 새로 배웠다면 마지막 줄에 KNOWLEDGE: 로 한 문장 적어라.
+새 공용 지식이 없으면 KNOWLEDGE: NONE 이라고 적어라.`;
  try{
   const preferred=process.env.ZOO_AI_MODEL||'gemini-3.8-flash';
   const models=[preferred,'gemini-3.6-flash','gemini-3.5-flash-lite','gemini-3.1-flash-lite']
@@ -133,22 +166,27 @@ ${recent.slice(-8).map(x=>x.role+': '+x.text).join('\n')||'없음'}
    throw lastError||new Error('Gemini unavailable');
   }
   let out=(data.candidates?.[0]?.content?.parts||[]).map(p=>p.text||'').join('').trim();
+  out=out.replace(/^\*\*?Constraints?\*\*?:.*$/gim,'').trim();
+  let learnedKnowledge=null;
+  const km=out.match(/(?:^|\n)KNOWLEDGE:\s*(.+)$/i);
+  if(km){if(km[1].trim().toUpperCase()!=='NONE')learnedKnowledge=km[1].trim().slice(0,180);out=out.replace(/(?:^|\n)KNOWLEDGE:\s*.+$/i,'').trim();}
   let memory=null;
   const mm=out.match(/(?:^|\n)MEMORY:\s*(.+)$/i);
   if(mm){
    if(mm[1].trim().toUpperCase()!=='NONE')memory=mm[1].trim().slice(0,180);
    out=out.replace(/(?:^|\n)MEMORY:\s*.+$/i,'').trim();
   }
-  if(!out)return {reply:fallbackNpc(npcId,text),memory:null,ai:false,provider:'fallback'};
+  if(!out)return {reply:fallbackNpc(npcId,text,user),memory:null,ai:false,provider:'fallback'};
   recent.push({role:'user',text:String(text).slice(0,300)},{role:npc.name,text:out.slice(0,300)});
   while(recent.length>16)recent.shift();
   let aiMemorySaved=false;
   if(memory)aiMemorySaved=rememberFact(k,memory);
+  const knowledgeSaved=learnedKnowledge?rememberKnowledge(npcId,learnedKnowledge):false;
   const grown=addGrowth(k,false);
-  return {reply:out.slice(0,260),memory:(memory||directLearned?'saved':null),ai:true,provider:'gemini',model:usedModel,growth:{level:grown.level,xp:grown.xp,talks:grown.talks,memories:grown.memories,relation:relationName(grown.level)}};
+  return {reply:out.slice(0,260),memory:(memory||directLearned?'saved':null),knowledgeSaved,ai:true,provider:'gemini',model:usedModel,growth:{level:grown.level,xp:grown.xp,talks:grown.talks,memories:grown.memories,relation:relationName(grown.level)}};
  }catch(e){
   console.error('npcThink',e.message);
-  const grown=addGrowth(k,false);return {reply:fallbackNpc(npcId,text),memory:directLearned?'direct':null,ai:false,provider:'fallback',growth:{level:grown.level,xp:grown.xp,talks:grown.talks,memories:grown.memories,relation:relationName(grown.level)}};
+  const grown=addGrowth(k,false);return {reply:fallbackNpc(npcId,text,user),memory:directLearned?'direct':null,ai:false,provider:'fallback',growth:{level:grown.level,xp:grown.xp,talks:grown.talks,memories:grown.memories,relation:relationName(grown.level)}};
  }
 }
 npcDbReady=initNpcDb();
@@ -253,10 +291,10 @@ wss.on('connection',ws=>{
       // Personal memory/growth is still calculated only from the user who actually spoke to the NPC.
       broadcastRoom(c.mode,{type:'npc_thinking',npcId,byUserId:c.user.id,byNickname:c.user.nickname,at:Date.now()});
       npcThink(c.user,npcId,text).then(result=>{
-        broadcastRoom(c.mode,{type:'npc_reply',npcId,text:result.reply,memorySaved:!!result.memory,ai:result.ai,provider:result.provider||'fallback',model:result.model||null,byUserId:c.user.id,byNickname:c.user.nickname,at:Date.now()});
+        broadcastRoom(c.mode,{type:'npc_reply',npcId,text:result.reply,memorySaved:!!result.memory,knowledgeSaved:!!result.knowledgeSaved,ai:result.ai,provider:result.provider||'fallback',model:result.model||null,byUserId:c.user.id,byNickname:c.user.nickname,at:Date.now()});
       }).catch(err=>{
         console.warn('npcThink unhandled',err?.message||err);
-        broadcastRoom(c.mode,{type:'npc_reply',npcId,text:'이해하기 쉽게 다시 말해줄래?',memorySaved:false,ai:false,provider:'fallback',model:null,byUserId:c.user.id,byNickname:c.user.nickname,at:Date.now()});
+        broadcastRoom(c.mode,{type:'npc_reply',npcId,text:localNpcReply(c.user,npcId,text),memorySaved:false,ai:false,provider:'fallback',model:null,byUserId:c.user.id,byNickname:c.user.nickname,at:Date.now()});
       });
       } else if(m.type==='chat'){
       const text=clean(m.text).slice(0,120);if(!text)return;

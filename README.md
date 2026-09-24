@@ -68,10 +68,18 @@ Gemini가 429/5xx(특히 503 과부하)를 반환하면 짧게 재시도한 뒤 
 - Mobile canvas/entity visibility is forced on as a final safety rule.
 
 
-## v52.8 Growing Memory
+## v52.9 Server Brain
 - NPC learns explicit player facts even if Gemini temporarily fails (likes, hobbies, remember-this phrases).
 - Memory and relationship growth are per player + per NPC.
 - When a returning player enters the cafe, an NPC can proactively greet them using a saved memory.
 - 30-minute proactive-greeting cooldown prevents spam.
 - Optional durable PostgreSQL persistence: set `DATABASE_URL`. Without it, local JSON remains as fallback and may reset on ephemeral hosts such as Render.
 - Render: add a PostgreSQL database, then set the web service `DATABASE_URL` to its internal connection URL.
+
+## v52.9 Server Brain
+- Gemini가 정상 응답할 때 `MEMORY:`(플레이어 개인 기억)와 `KNOWLEDGE:`(NPC 공용 지식)를 분리해 추출합니다.
+- 개인 기억은 `userId::npcId` 단위로 저장되어 다른 플레이어에게 섞이지 않습니다.
+- 공용 지식은 NPC별 `data/npc-knowledge.json` 또는 PostgreSQL `knowledge` 상태에 저장됩니다.
+- Gemini가 429/503/timeout/API 키 없음 상태여도 저장된 개인 기억/공용 지식을 검색해 NPC가 자체 응답합니다.
+- Gemini가 다시 연결되면 새 지식을 계속 배우고 서버 저장소를 확장합니다.
+- Render에서 영구 보존하려면 `DATABASE_URL`을 연결하세요. DB가 없으면 JSON fallback은 배포/재시작 시 유실될 수 있습니다.
