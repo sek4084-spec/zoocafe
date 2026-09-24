@@ -363,3 +363,46 @@ body.cafe-chat-history-open .game-shell.cafe-visual .chat-input-wrap{bottom:14px
   .game-shell.cafe-visual #entityLayer{display:none!important}
   .game-shell.cafe-visual .side-panel,.game-shell.cafe-visual .brandbar,.game-shell.cafe-visual .tip-panel,.game-shell.cafe-visual .caption{display:none!important}
 }
+
+/* v54.7 — Mobile Fullscreen Stage + reliable chat composer */
+@media (hover:none) and (pointer:coarse) and (orientation:portrait), (max-width:700px) and (orientation:portrait){
+  html,body{width:100%;height:100%;min-height:100%;overflow:hidden!important;background:#1b100a!important}
+  .game-shell.cafe-visual .game-stage{position:fixed!important;inset:0!important;width:100vw!important;height:100dvh!important;overflow:hidden!important;background:#1b100a!important}
+  /* Fill the phone like the approved concept. Keep the important center cast in frame. */
+  .game-shell.cafe-visual .scene-video{position:absolute!important;inset:0!important;width:100vw!important;height:100dvh!important;aspect-ratio:auto!important;object-fit:cover!important;object-position:50% 50%!important;transform:none!important;filter:none!important;z-index:0!important}
+  .game-shell.cafe-visual .scene-video-blur{display:none!important}
+  .game-shell.cafe-visual #game{position:absolute!important;inset:0!important;width:100vw!important;height:100dvh!important;z-index:4!important;background:transparent!important}
+
+  /* Compact rails so more of the cafe remains visible. */
+  .game-shell.cafe-visual .cafe-sidebar{top:42dvh!important;gap:5px!important;padding:6px 5px!important;border-radius:18px!important}
+  .game-shell.cafe-visual .cafe-sidebar-left{left:max(7px,env(safe-area-inset-left))!important}
+  .game-shell.cafe-visual .cafe-sidebar-right{right:max(7px,env(safe-area-inset-right))!important}
+  .game-shell.cafe-visual .cafe-sidebar button{width:44px!important;min-height:46px!important;border-radius:13px!important}
+  .game-shell.cafe-visual .cafe-sidebar button>span{font-size:17px!important}.game-shell.cafe-visual .cafe-sidebar button>small{font-size:8px!important}
+
+  /* Smaller conversation dock; composer is permanently visible and touchable. */
+  .game-shell.cafe-visual>.game-console>.chat-panel,
+  body.cafe-chat-history-open .game-shell.cafe-visual>.game-console>.chat-panel{
+    left:max(8px,env(safe-area-inset-left))!important;right:max(8px,env(safe-area-inset-right))!important;
+    bottom:max(8px,env(safe-area-inset-bottom))!important;width:auto!important;height:20dvh!important;
+    min-height:158px!important;max-height:205px!important;border-radius:20px!important;z-index:75!important;
+  }
+  .game-shell.cafe-visual .chat-head{height:36px!important;min-height:36px!important;padding:4px 9px!important}
+  .game-shell.cafe-visual .chat-tabs button{font-size:10px!important;padding:5px 3px!important}
+  .game-shell.cafe-visual .chat-log{padding:7px 11px 54px!important}
+  .game-shell.cafe-visual .chat-row{grid-template-columns:72px 1fr!important;margin-bottom:5px!important;font-size:11px!important;line-height:1.32!important}
+
+  .game-shell.cafe-visual .chat-input-wrap,
+  .game-shell.cafe-visual .chat-input-wrap[hidden],
+  body.cafe-chat-history-open .game-shell.cafe-visual .chat-input-wrap{
+    display:flex!important;pointer-events:auto!important;position:fixed!important;z-index:110!important;
+    left:max(18px,calc(env(safe-area-inset-left) + 10px))!important;right:max(18px,calc(env(safe-area-inset-right) + 10px))!important;
+    bottom:max(17px,calc(env(safe-area-inset-bottom) + 9px))!important;width:auto!important;height:42px!important;
+    padding:4px 8px!important;border-radius:16px!important;background:rgba(31,22,17,.94)!important;
+  }
+  .game-shell.cafe-visual .chat-input-wrap input{display:block!important;pointer-events:auto!important;touch-action:manipulation!important;height:34px!important;font-size:16px!important;color:#fff5df!important;-webkit-user-select:text!important;user-select:text!important}
+  .game-shell.cafe-visual .chat-send-hint{pointer-events:auto!important;min-width:34px!important;text-align:center!important;cursor:pointer!important}
+
+  /* On phones NPC dialogue is read in the dock, not over faces. */
+  .game-shell.cafe-visual #entityLayer{display:none!important}
+}

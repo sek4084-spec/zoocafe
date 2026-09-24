@@ -1396,3 +1396,22 @@ function z546SyncBlurVideo(){
 }
 setInterval(z546SyncBlurVideo,1200);
 addEventListener('visibilitychange',()=>{if(!document.hidden)z546SyncBlurVideo()});
+
+/* v54.7 — mobile composer: tapping the visible field always opens the keyboard;
+   tapping the arrow sends without depending on desktop Enter behavior. */
+(function z547MobileComposer(){
+  function isPhone(){return matchMedia('(hover:none) and (pointer:coarse)').matches || innerWidth<=700}
+  function activate(){
+    if(mode!=='cafe'||!isPhone())return;
+    chatActive=true; document.body.classList.add('chatting','cafe-chat-history-open');
+    chatInputWrap.hidden=false;
+  }
+  addEventListener('DOMContentLoaded',()=>{
+    if(!chatInput||!chatInputWrap)return;
+    chatInput.addEventListener('pointerdown',()=>{activate();setTimeout(()=>chatInput.focus({preventScroll:true}),0)});
+    chatInput.addEventListener('click',()=>{activate();chatInput.focus({preventScroll:true})});
+    const send=chatInputWrap.querySelector('.chat-send-hint');
+    send?.addEventListener('pointerdown',e=>{if(!isPhone()||mode!=='cafe')return;e.preventDefault();e.stopPropagation();activate();if(chatInput.value.trim())sendChat();else chatInput.focus({preventScroll:true})});
+    document.getElementById('cafeBarChat')?.addEventListener('pointerdown',()=>{if(mode==='cafe'&&isPhone()){activate();setTimeout(()=>chatInput.focus({preventScroll:true}),40)}},{capture:true});
+  });
+})();
