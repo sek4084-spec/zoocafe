@@ -511,3 +511,38 @@ body.scene-video-active .game-shell.cafe-visual #game,
 }
 .game-shell.cafe-visual .game-stage.cafe-camera-dragging{cursor:grabbing;touch-action:none}
 .game-shell.cafe-visual .game-stage{cursor:grab}
+
+/* ================================================================
+   ZOO:CAFE v54.14 — Single Bubble + Top Toolbar
+   - one NPC bubble only on mobile (DOM bubble; canvas duplicate suppressed in JS)
+   - merge cafe controls into one compact top row
+   - keep NPC identity visible while the scene is dragged
+   ================================================================ */
+.game-shell.cafe-visual .cafe-sidebar{
+  top:12px!important;bottom:auto!important;transform:none!important;
+  flex-direction:row!important;gap:5px!important;padding:5px 7px!important;
+  border-radius:16px!important;background:rgba(55,32,20,.72)!important;
+  backdrop-filter:blur(9px)!important;
+}
+.game-shell.cafe-visual .cafe-sidebar-left{left:50%!important;right:auto!important;transform:translateX(-100%)!important;border-top-right-radius:0!important;border-bottom-right-radius:0!important;padding-right:3px!important}
+.game-shell.cafe-visual .cafe-sidebar-right{right:50%!important;left:auto!important;transform:translateX(100%)!important;border-top-left-radius:0!important;border-bottom-left-radius:0!important;padding-left:3px!important}
+/* Reduce the toolbar to five useful actions: menu, chat, friends, BGM, settings. */
+.game-shell.cafe-visual .cafe-sidebar-left [data-panel="profile"],
+.game-shell.cafe-visual .cafe-sidebar-left [data-panel="inventory"],
+.game-shell.cafe-visual .cafe-sidebar-right [data-panel="map"]{display:none!important}
+.game-shell.cafe-visual .cafe-sidebar button{width:52px!important;min-height:48px!important;border-radius:12px!important}
+.game-shell.cafe-visual .cafe-sidebar button>span{font-size:18px!important}.game-shell.cafe-visual .cafe-sidebar button>small{font-size:9px!important}
+
+@media (hover:none) and (pointer:coarse), (max-width:700px){
+  .game-shell.cafe-visual .cafe-sidebar{position:fixed!important;z-index:90!important;top:max(9px,env(safe-area-inset-top))!important;gap:2px!important;padding:4px!important}
+  .game-shell.cafe-visual .cafe-sidebar-left{left:50%!important;transform:translateX(-100%)!important}
+  .game-shell.cafe-visual .cafe-sidebar-right{right:50%!important;transform:translateX(100%)!important}
+  .game-shell.cafe-visual .cafe-sidebar button{width:43px!important;min-width:43px!important;height:44px!important;min-height:44px!important;padding:2px!important}
+  .game-shell.cafe-visual .cafe-sidebar button>span{font-size:16px!important}.game-shell.cafe-visual .cafe-sidebar button>small{font-size:8px!important}
+  /* A little more room below the new top bar. */
+  .game-shell.cafe-visual .version-badge{top:max(61px,calc(env(safe-area-inset-top) + 61px))!important}
+  /* Stronger identity badges make it obvious who is speaking. */
+  .mobile-npc-bubble b{font-size:11px!important;padding:4px 9px!important;margin:-21px 0 5px!important}
+  .mobile-npc-bubble.mung b{background:#9c6338!important}
+  .mobile-npc-bubble.rabbit b{background:#c97578!important}
+}

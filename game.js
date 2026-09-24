@@ -1518,3 +1518,42 @@ z541DrawNpcBubble=function(n){
   addEventListener('resize',apply,{passive:true});
   apply();
 })();
+
+/* ================================================================
+   ZOO:CAFE v54.14 — One Bubble / Speaker Identity
+   Mobile uses only the large DOM speech bubble, preventing the old tiny
+   canvas bubble from appearing behind it. Desktop bubbles include a clear
+   speaker name tag. Camera drag continues to move mobile speech with NPCs.
+   ================================================================ */
+function z5414Phone(){return innerWidth<=700||matchMedia('(hover:none) and (pointer:coarse)').matches}
+function z5414NamedBubble(text,x,y,thinking=false,npcId=''){
+  if(!text&&!thinking)return;
+  ctx.save();
+  const name=npcId==='ai-rabbit'?'쥐무는토끼':'멍사자';
+  const fontSize=13,lineH=19,padX=15,padY=12,maxW=330,minW=thinking?70:110;
+  ctx.font=`700 ${fontSize}px "Noto Sans KR","Malgun Gothic",sans-serif`;
+  const raw=thinking?'…':String(text),lines=[];let line='';
+  for(const ch of [...raw]){const test=line+ch;if(ctx.measureText(test).width>maxW-padX*2&&line){lines.push(line);line=ch}else line=test}
+  if(line)lines.push(line);const visible=lines.slice(0,4);if(lines.length>4)visible[3]=visible[3].slice(0,-1)+'…';
+  const contentW=Math.max(...visible.map(v=>ctx.measureText(v).width),0);
+  const tw=Math.max(minW,Math.min(maxW,contentW+padX*2)),bh=Math.max(43,visible.length*lineH+padY*2);
+  const bx=clamp(x-tw/2,12,W-tw-12),by=clamp(y-104-(bh-39),28,H-bh-20);
+  RR(bx+3,by+5,tw,bh,13,'rgba(43,25,14,.22)');
+  RR(bx,by,tw,bh,13,'rgba(255,246,222,.97)','#8b6747',1.5);
+  const tagW=npcId==='ai-rabbit'?82:55;
+  RR(bx+10,by-14,tagW,24,10,npcId==='ai-rabbit'?'#c97578':'#9c6338');
+  ctx.fillStyle='#fff8e9';ctx.font='800 10px "Noto Sans KR","Malgun Gothic",sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(name,bx+10+tagW/2,by-2);
+  ctx.fillStyle='rgba(255,246,222,.97)';ctx.strokeStyle='#8b6747';ctx.lineWidth=1.5;
+  ctx.beginPath();const tx=clamp(x,bx+18,bx+tw-18);ctx.moveTo(tx-7,by+bh-1);ctx.lineTo(tx,by+bh+8);ctx.lineTo(tx+8,by+bh-1);ctx.closePath();ctx.fill();ctx.stroke();
+  ctx.fillStyle='#4a3425';ctx.font=`700 ${fontSize}px "Noto Sans KR","Malgun Gothic",sans-serif`;ctx.textAlign='center';ctx.textBaseline='middle';
+  visible.forEach((v,i)=>ctx.fillText(v,bx+tw/2,by+padY+lineH*(i+.5)+2));ctx.restore();
+}
+const z5414PreviousNpcBubble=z541DrawNpcBubble;
+z541DrawNpcBubble=function(n){
+  // On phones the large HTML bubble is the single source of visible NPC speech.
+  if(z5414Phone())return;
+  const text=n.thinking?'…':(n.bubble&&performance.now()<n.bubbleUntil?n.bubble:'');if(!text)return;
+  if(n.id==='ai-mung'){z5414NamedBubble(text,390,185,!!n.thinking,n.id);return}
+  if(n.id==='ai-rabbit'){z5414NamedBubble(text,700,225,!!n.thinking,n.id);return}
+  z5414PreviousNpcBubble(n);
+};
