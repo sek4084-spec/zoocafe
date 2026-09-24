@@ -1444,3 +1444,29 @@ z541DrawNpcBubble=function(n){
 };
 
 /* v54.11: desktop NPC bubble anchors tuned for the new living cafe video. */
+
+/* ================================================================
+   ZOO:CAFE v54.12 — Mobile NPC Conversation Focus
+   The video itself contains the characters. DOM speech bubbles are used
+   on phones so dialogue stays anchored and readable while typing.
+   ================================================================ */
+(function z5412MobileNpcSpeech(){
+  const mung=document.getElementById('mobileMungBubble');
+  const rabbit=document.getElementById('mobileRabbitBubble');
+  if(!mung||!rabbit)return;
+  const nodes={'ai-mung':mung,'ai-rabbit':rabbit};
+  let last={};
+  function phone(){return innerWidth<=700 || matchMedia('(hover:none) and (pointer:coarse)').matches}
+  function tick(){
+    const cafe=mode==='cafe'&&phone();
+    for(const n of aiFriends){
+      const el=nodes[n.id];if(!el)continue;
+      const text=n.thinking?'…':(n.bubble&&performance.now()<n.bubbleUntil?n.bubble:'');
+      const visible=cafe&&!!text;
+      el.hidden=!visible;
+      if(visible&&last[n.id]!==text){el.querySelector('span').textContent=text;last[n.id]=text}
+    }
+    requestAnimationFrame(tick);
+  }
+  requestAnimationFrame(tick);
+})();

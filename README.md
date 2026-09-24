@@ -150,3 +150,10 @@ Gemini가 429/5xx(특히 503 과부하)를 반환하면 짧게 재시도한 뒤 
 - Replaced the cafe background with the newly supplied MP4.
 - Restored the animated cafe video layer while preserving AI, multiplayer, sidebars, chat, Gemini and PostgreSQL systems.
 - Existing desktop NPC bubble positioning remains in place.
+
+
+## v54.12 NPC Conversation Focus
+- Mobile video focal point moved left so Mungsaja and Rabbit stay together in the portrait frame.
+- Mobile NPC speech uses stable DOM bubbles above each character and remains visible while typing.
+- Conversation dock reduced to preserve more of the character area.
+- Desktop v54.11 bubble layout and multiplayer/Gemini/PostgreSQL systems remain intact.

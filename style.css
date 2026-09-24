@@ -464,3 +464,32 @@ body.scene-video-active .game-shell.cafe-visual #game,
   .game-shell.cafe-visual .game-stage:before{display:none!important}
   .game-shell.cafe-visual .scene-video{object-fit:cover!important;object-position:center center!important}
 }
+
+/* v54.12 — Mobile NPC conversation focus. Keep both painted NPCs together in the portrait crop. */
+.mobile-npc-speech{display:none}
+@media (hover:none) and (pointer:coarse) and (orientation:portrait), (max-width:700px) and (orientation:portrait){
+  /* The source is 16:9. A 38% horizontal focal point keeps Mungsaja + Rabbit in the same portrait view. */
+  .game-shell.cafe-visual .scene-video{object-fit:cover!important;object-position:38% 50%!important}
+
+  /* Keep the cast in the visual center, with controls framing them rather than covering them. */
+  .game-shell.cafe-visual .cafe-sidebar{top:37dvh!important;transform:translateY(-50%)!important}
+  .game-shell.cafe-visual .cafe-sidebar-left{left:max(7px,env(safe-area-inset-left))!important}
+  .game-shell.cafe-visual .cafe-sidebar-right{right:max(7px,env(safe-area-inset-right))!important}
+
+  /* Real NPC speech remains visible even while the phone keyboard/chat composer is open. */
+  .game-shell.cafe-visual .mobile-npc-speech{display:block!important;position:fixed!important;inset:0!important;z-index:72!important;pointer-events:none!important}
+  .mobile-npc-bubble{position:absolute;max-width:42vw;min-width:92px;padding:8px 10px 9px;border:1px solid rgba(132,91,57,.9);border-radius:15px;background:rgba(255,247,226,.97);color:#493225;box-shadow:0 5px 18px rgba(38,20,9,.22);font:700 11px/1.35 "Noto Sans KR","Malgun Gothic",sans-serif;word-break:keep-all;overflow-wrap:anywhere}
+  .mobile-npc-bubble:after{content:"";position:absolute;bottom:-8px;border:8px solid transparent;border-top-color:rgba(255,247,226,.97);border-bottom:0}
+  .mobile-npc-bubble b{display:block;width:max-content;max-width:100%;margin:-19px 0 4px;padding:3px 8px;border-radius:10px;background:#a96f3f;color:#fff8e9;font-size:10px;box-shadow:0 2px 6px #0002}
+  .mobile-npc-bubble.mung{left:19vw;top:48dvh}.mobile-npc-bubble.mung:after{left:30%}
+  .mobile-npc-bubble.rabbit{right:15vw;top:48dvh}.mobile-npc-bubble.rabbit:after{right:27%}
+  .mobile-npc-bubble.rabbit b{background:#d68183}
+
+  /* Conversation dock is compact enough to leave the NPCs visible above it. */
+  .game-shell.cafe-visual>.game-console>.chat-panel,
+  body.cafe-chat-history-open .game-shell.cafe-visual>.game-console>.chat-panel{height:18dvh!important;min-height:145px!important;max-height:188px!important}
+  .game-shell.cafe-visual .chat-log{padding-bottom:50px!important}
+
+  /* When the keyboard opens, keep NPC speech above the dock instead of hiding it. */
+  body.chatting .mobile-npc-bubble.mung,body.chatting .mobile-npc-bubble.rabbit{top:39dvh!important;transform:scale(.94);transform-origin:center bottom}
+}
