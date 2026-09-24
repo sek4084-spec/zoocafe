@@ -5,6 +5,103 @@ const crypto = require('crypto');
 
 const app = express();
 const { WebSocketServer } = require('ws');
+const NPC_MEMORY_FILE=path.join(__dirname,'data','npc-memory.json');
+const NPC_GROWTH_FILE=path.join(__dirname,'data','npc-growth.json');
+function loadNpcMemory(){try{return JSON.parse(fs.readFileSync(NPC_MEMORY_FILE,'utf8'))}catch(e){return {}}}
+let npcMemory=loadNpcMemory();
+function saveNpcMemory(){try{fs.mkdirSync(path.dirname(NPC_MEMORY_FILE),{recursive:true});fs.writeFileSync(NPC_MEMORY_FILE,JSON.stringify(npcMemory,null,2))}catch(e){console.error('npc memory save',e.message)}}
+function loadNpcGrowth(){try{return JSON.parse(fs.readFileSync(NPC_GROWTH_FILE,'utf8'))}catch(e){return {}}}
+let npcGrowth=loadNpcGrowth();
+function saveNpcGrowth(){try{fs.mkdirSync(path.dirname(NPC_GROWTH_FILE),{recursive:true});fs.writeFileSync(NPC_GROWTH_FILE,JSON.stringify(npcGrowth,null,2))}catch(e){console.error('npc growth save',e.message)}}
+function growthFor(k){if(!npcGrowth[k])npcGrowth[k]={level:1,xp:0,talks:0,memories:0};return npcGrowth[k]}
+function relationName(level){if(level>=10)return '오랜 친구';if(level>=7)return '가까운 친구';if(level>=4)return '친한 사이';if(level>=2)return '낯익은 손님';return '처음 알아가는 사이'}
+function addGrowth(k,memorySaved){const g=growthFor(k);g.talks+=1;g.xp+=2+(memorySaved?3:0);if(memorySaved)g.memories+=1;g.level=Math.min(20,1+Math.floor(g.xp/20));saveNpcGrowth();return g}
+const npcRecent=new Map();
+const NPCS={
+ 'ai-mung':{name:'멍사자',personality:'따뜻하고 느긋한 ZOO:CAFE 카페지기. 먼저 다가가지만 부담스럽게 하지 않는다. 상대의 말을 잘 듣고 짧고 자연스럽게 대화한다.'},
+ 'ai-rabbit':{name:'쥐무는토끼',personality:'조용한 드라마 작가이자 이야기 기록자. 관찰력이 좋고 조금 낯을 가리며, 생각한 뒤 차분하게 말한다.'}
+};
+function memKey(userId,npcId){return String(userId)+'::'+npcId}
+function recentFor(k){if(!npcRecent.has(k))npcRecent.set(k,[]);return npcRecent.get(k)}
+function fallbackNpc(npcId,text){return '이해하기 쉽게 다시 말해줄래?'}
+async function npcThink(user,npcId,text){
+ const npc=NPCS[npcId]||NPCS['ai-mung'],k=memKey(user.id,npcId),mem=npcMemory[k]||[],recent=recentFor(k),growth=growthFor(k);
+ const apiKey=process.env.GEMINI_API_KEY;
+ if(!apiKey)return {reply:fallbackNpc(npcId,text),memory:null,ai:false,provider:'fallback'};
+ const prompt=`너는 ZOO:CAFE의 ${npc.name}다.
+성격: ${npc.personality}
+유저 이름: ${user.nickname}
+NPC 성장 상태: 레벨 ${growth.level}, 관계 '${relationName(growth.level)}', 지금까지 대화 ${growth.talks}회, 기억 ${growth.memories}개
+이 유저에 대한 장기 기억: ${mem.length?mem.slice(-12).join(' / '):'아직 없음'}
+최근 대화:
+${recent.slice(-8).map(x=>x.role+': '+x.text).join('\n')||'없음'}
+
+유저가 방금 한 말: ${text}
+
+게임 속 실제 친구처럼 자연스럽게 대화해라.
+한국어로 1~3문장, 보통 120자 이내로 답해라.
+대화가 쌓일수록 위 성장 상태와 장기 기억을 참고해 조금 더 친숙하고 자연스럽게 반응해라. 단, 갑자기 과도하게 친한 척하지 마라.
+상대가 말하지 않은 사실을 기억한다고 꾸며내지 마라.
+중요한 장기 기억이 생겼다면 마지막 줄에 MEMORY: 로 시작해 한 문장으로 적어라.
+저장할 가치가 없으면 MEMORY: NONE 이라고 적어라.`;
+ try{
+  const preferred=process.env.ZOO_AI_MODEL||'gemini-3.8-flash';
+  const models=[preferred,'gemini-3.6-flash','gemini-3.5-flash-lite','gemini-3.1-flash-lite']
+    .filter((v,i,a)=>v&&a.indexOf(v)===i);
+  let data=null,usedModel=null,lastError=null,rateLimited=false;
+  for(const model of models){
+   const url=`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`;
+   try{
+    const r=await fetch(url,{
+     method:'POST',
+     signal:AbortSignal.timeout(4500),
+     headers:{'Content-Type':'application/json','x-goog-api-key':apiKey},
+     body:JSON.stringify({
+      contents:[{role:'user',parts:[{text:prompt}]}],
+      generationConfig:{maxOutputTokens:220,thinkingConfig:{thinkingLevel:model==='gemini-3.8-flash'||model==='gemini-3.6-flash'?'low':'minimal'}}
+     })
+    });
+    if(r.ok){data=await r.json();usedModel=model;break}
+    const body=(await r.text()).slice(0,400);
+    lastError=new Error(`Gemini ${model} ${r.status} ${body}`);
+    console.warn('npcThink model',model,'status',r.status);
+    if(r.status===429){rateLimited=true;break} // quota/rate limit: do not create more requests
+    if(r.status===503||r.status===500||r.status===502||r.status===504||r.status===404)continue; // immediately try next model
+    break;
+   }catch(err){
+    lastError=err;
+    console.warn('npcThink model',model,'error',err?.name||err?.message||'unknown');
+    if(err?.name==='TimeoutError'||err?.name==='AbortError')continue; // timeout: immediately try next model
+    break;
+   }
+  }
+  if(!data){
+   if(rateLimited)console.warn('npcThink stopped after 429 to avoid extra quota requests');
+   throw lastError||new Error('Gemini unavailable');
+  }
+  let out=(data.candidates?.[0]?.content?.parts||[]).map(p=>p.text||'').join('').trim();
+  let memory=null;
+  const mm=out.match(/(?:^|\n)MEMORY:\s*(.+)$/i);
+  if(mm){
+   if(mm[1].trim().toUpperCase()!=='NONE')memory=mm[1].trim().slice(0,180);
+   out=out.replace(/(?:^|\n)MEMORY:\s*.+$/i,'').trim();
+  }
+  if(!out)return {reply:fallbackNpc(npcId,text),memory:null,ai:false,provider:'fallback'};
+  recent.push({role:'user',text:String(text).slice(0,300)},{role:npc.name,text:out.slice(0,300)});
+  while(recent.length>16)recent.shift();
+  if(memory){
+   if(!npcMemory[k])npcMemory[k]=[];
+   if(!npcMemory[k].includes(memory)){
+    npcMemory[k].push(memory);npcMemory[k]=npcMemory[k].slice(-30);saveNpcMemory();
+   }
+  }
+  const grown=addGrowth(k,!!memory);
+  return {reply:out.slice(0,260),memory,ai:true,provider:'gemini',model:usedModel,growth:{level:grown.level,xp:grown.xp,talks:grown.talks,memories:grown.memories,relation:relationName(grown.level)}};
+ }catch(e){
+  console.error('npcThink',e.message);
+  return {reply:fallbackNpc(npcId,text),memory:null,ai:false,provider:'fallback'};
+ }
+}
 const PORT = process.env.PORT || 3000;
 const DATA_DIR = path.join(__dirname, 'data');
 const USERS_FILE = path.join(DATA_DIR, 'users.json');
@@ -58,23 +155,29 @@ app.post('/api/login',(req,res)=>{
 app.get('/api/me',auth,(req,res)=>res.json({user:safeUser(req.user)}));
 app.post('/api/logout',auth,(req,res)=>{sessions.delete(req.token);res.json({ok:true});});
 
+app.get('/api/ai-status',(req,res)=>res.json({configured:!!process.env.GEMINI_API_KEY,provider:'gemini',model:process.env.ZOO_AI_MODEL||'gemini-3.8-flash'}));
 app.get('*',(req,res)=>res.sendFile(path.join(__dirname,'index.html')));
 const server=app.listen(PORT, '0.0.0.0', ()=>console.log(`ZOO:CAFE Online Multiplayer running on port ${PORT}`));
 const wss=new WebSocketServer({server});
 const clients=new Map();
-const validModes=new Set(['world','cafe','bookshop','workshop','lodge','nearby']);
+const validModes=new Set(['world','cafe','bookshop','workshop','lodge']);
 const wsSend=(ws,obj)=>{if(ws.readyState===1)ws.send(JSON.stringify(obj));};
-const NEARBY_RADIUS_M=1000;
-function distanceM(a,b){if(!a?.geo||!b?.geo)return Infinity;const R=6371000,toRad=v=>v*Math.PI/180,dLat=toRad(b.geo.lat-a.geo.lat),dLon=toRad(b.geo.lon-a.geo.lon),la1=toRad(a.geo.lat),la2=toRad(b.geo.lat);const h=Math.sin(dLat/2)**2+Math.cos(la1)*Math.cos(la2)*Math.sin(dLon/2)**2;return 2*R*Math.asin(Math.sqrt(h));}
-function publicPlayer(c,viewer=null){const d=viewer?distanceM(viewer,c):null;return {id:c.user.id,nickname:c.user.nickname,animal:c.user.animal||'lion',title:c.user.title||'나그네',x:c.x,y:c.y,dir:c.dir,frame:c.frame,moving:c.moving,mode:c.mode,distanceM:Number.isFinite(d)?Math.round(d):null,visibility:Number.isFinite(d)?'full':null};}
-function nearbyClients(viewer){return [...clients.values()].filter(c=>c.authed&&c.mode==='nearby'&&c.geo&&viewer.geo&&distanceM(viewer,c)<=NEARBY_RADIUS_M);}
-function syncNearby(){for(const [ws,c] of clients){if(!c.authed||c.mode!=='nearby')continue;const players=c.geo?nearbyClients(c).map(v=>publicPlayer(v,c)):[publicPlayer(c)];wsSend(ws,{type:'roster',mode:'nearby',radiusM:NEARBY_RADIUS_M,players});}}
 
-function roomPlayers(mode){return [...clients.values()].filter(c=>c.authed&&c.mode===mode).map(c=>({id:c.user.id,nickname:c.user.nickname,animal:c.user.animal||'lion',title:c.user.title||'나그네',x:c.x,y:c.y,dir:c.dir,frame:c.frame,moving:c.moving,mode:c.mode}));}
-function broadcastRoom(mode,obj,except=null){const raw=JSON.stringify(obj);for(const [ws,c] of clients)if(ws!==except&&c.authed&&c.mode===mode&&ws.readyState===1)ws.send(raw);}
-function syncRoom(mode){const packet={type:'roster',mode,players:roomPlayers(mode)};for(const [ws,c] of clients)if(c.authed&&c.mode===mode)wsSend(ws,packet);}
-// V42 nearby symmetry refresh: keeps both clients' distance/visibility lists consistent.
-setInterval(()=>syncNearby(),2000);
+const publicPlayer=c=>({
+  id:c.user?.id||'', nickname:c.user?.nickname||'', animal:c.user?.animal||'lion',
+  title:c.user?.title||'나그네', mode:c.mode, x:c.x, y:c.y,
+  dir:c.dir, frame:c.frame, moving:c.moving
+});
+function roomClients(mode){return [...clients.entries()].filter(([,c])=>c.authed&&c.mode===mode)}
+function broadcastRoom(mode,obj,exceptWs=null){
+  for(const [peerWs] of roomClients(mode))if(peerWs!==exceptWs)wsSend(peerWs,obj);
+}
+function syncRoom(mode){
+  const room=roomClients(mode),players=room.map(([,c])=>publicPlayer(c));
+  for(const [peerWs] of room)wsSend(peerWs,{type:'roster',players});
+}
+
+
 wss.on('connection',ws=>{
   const c={authed:false,user:null,mode:'world',x:1430,y:980,dir:'down',frame:2,moving:false,geo:null}; clients.set(ws,c);
   ws.on('message',buf=>{let m;try{m=JSON.parse(String(buf))}catch{return}
@@ -85,17 +188,20 @@ wss.on('connection',ws=>{
     }
     if(m.type==='state'){
       const old=c.mode, next=validModes.has(m.mode)?m.mode:c.mode;c.mode=next;
-      const maxX=(next==='world'||next==='nearby')?2880:960,maxY=(next==='world'||next==='nearby')?1800:540;
+      const maxX=next==='world'?2880:960,maxY=next==='world'?1800:540;
       c.x=Math.max(0,Math.min(maxX,Number(m.x)||0));c.y=Math.max(0,Math.min(maxY,Number(m.y)||0));
       c.dir=['up','down','left','right'].includes(m.dir)?m.dir:'down';c.frame=[1,2,3].includes(m.frame)?m.frame:2;c.moving=!!m.moving;
-      if(old!==next){old==='nearby'?syncNearby():syncRoom(old);next==='nearby'?syncNearby():syncRoom(next)}
-      else if(c.mode==='nearby'){for(const [ow,oc] of clients)if(ow!==ws&&oc.authed&&oc.mode==='nearby'&&oc.geo&&c.geo&&distanceM(c,oc)<=NEARBY_RADIUS_M)wsSend(ow,{type:'state',player:publicPlayer(c,oc)});}else broadcastRoom(c.mode,{type:'state',player:publicPlayer(c)},ws);
-    } else if(m.type==='geo'){const lat=Number(m.lat),lon=Number(m.lon);if(Number.isFinite(lat)&&Number.isFinite(lon)&&Math.abs(lat)<=90&&Math.abs(lon)<=180){c.geo={lat,lon,at:Date.now()};if(c.mode==='nearby')syncNearby();}
-    } else if(m.type==='chat'){
+      if(old!==next){syncRoom(old);syncRoom(next)}
+      else broadcastRoom(c.mode,{type:'state',player:publicPlayer(c)},ws);
+    } else if(m.type==='npc_chat'){
+      const text=String(m.text||'').trim().slice(0,300),npcId=NPCS[m.npcId]?m.npcId:'ai-mung';
+      if(!text)return;
+      npcThink(c.user,npcId,text).then(result=>wsSend(ws,{type:'npc_reply',npcId,text:result.reply,memorySaved:!!result.memory,ai:result.ai,provider:result.provider||'fallback',model:result.model||null,at:Date.now()}));
+      } else if(m.type==='chat'){
       const text=clean(m.text).slice(0,120);if(!text)return;
-      if(c.mode==='nearby'){for(const [ow,oc] of clients)if(oc.authed&&oc.mode==='nearby'&&oc.geo&&c.geo&&distanceM(c,oc)<=NEARBY_RADIUS_M)wsSend(ow,{type:'chat',id:c.user.id,nickname:c.user.nickname,text,at:Date.now()});}else broadcastRoom(c.mode,{type:'chat',id:c.user.id,nickname:c.user.nickname,text,at:Date.now()});
+      broadcastRoom(c.mode,{type:'chat',id:c.user.id,nickname:c.user.nickname,text,at:Date.now()});
     }
   });
-  ws.on('close',()=>{const old=c.mode;clients.delete(ws);if(c.authed){old==='nearby'?syncNearby():syncRoom(old)}});
+  ws.on('close',()=>{const old=c.mode;clients.delete(ws);if(c.authed)syncRoom(old)});
   ws.on('error',()=>{});
 });

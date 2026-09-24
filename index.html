@@ -2,8 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>ZOO:CAFE</title><link rel="stylesheet" href="style.css?v=492">
-<script src="map_config.js?v=492"></script>
+<title>ZOO:CAFE</title><link rel="stylesheet" href="style.css?v=526">
 </head>
 <body>
 <section class="auth-screen" id="authScreen">
@@ -25,17 +24,11 @@
   <header class="brandbar"><div class="brand"><span class="cup">☕</span><strong>ZOO:CAFE</strong><small>a little cafe for little stories</small></div><div class="status"><span class="dot"></span>ZOO:CAFE 광장</div></header>
   <div class="game-console">
     <section class="game-stage" id="gameStage">
-      <div id="googleGarden" class="google-garden" hidden><div id="googleGardenMap"></div>
-<div class="z46-map-brand"><span>🐾</span><b>ZOO:CAFE</b><small>현실 속 정원</small></div>
-<div class="z46-map-hint">1km 정원 · 캐릭터를 움직여 친구를 만나보세요</div><div class="z48-field-note">🕹 이동 · GPS는 입장 지역 확인용</div>
-<div id="gardenMapMessage">GPS와 ZOO 정원을 연결하는 중…</div>
-<div class="z48-map-actions"><button id="gardenBubbleChat" type="button">💬<small>말풍선</small></button><button id="gardenFullChat" type="button">☰<small>대화</small></button></div>
-<div id="z48QuickChat" class="z48-quick-chat" hidden><input id="z48QuickInput" maxlength="80" placeholder="캐릭터 머리 위에 할 말을 적어보세요"><button id="z48QuickSend" type="button">전송</button></div>
-<section id="z48FullChat" class="z48-full-chat" hidden><header><div><b>🐾 ZOO:CAFE 이야기</b><small>주변 친구들과 편하게 이야기해요</small></div><button id="z48FullChatClose" type="button">×</button></header><div id="z48FullChatLog" class="z48-full-chat-log"></div><form id="z48FullChatForm"><input id="z48FullChatInput" maxlength="80" autocomplete="off" placeholder="메시지를 입력하세요..."><button>➤</button></form></section>
-<button id="gardenCafeReturn" class="garden-cafe-return" type="button">☕ 카페로 돌아가기</button></div><canvas id="game" width="960" height="540" aria-label="ZOO:CAFE 게임"></canvas>
+      <video id="sceneVideo" class="scene-video" muted loop playsinline hidden></video>
+      <canvas id="game" width="960" height="540" aria-label="ZOO:CAFE 게임 배경과 플레이어"></canvas>
+      <canvas id="entityLayer" width="960" height="540" aria-label="ZOO:CAFE 캐릭터 레이어"></canvas>
       <div class="hud hud-controls">WASD / 방향키</div>
-      <div class="version-badge" aria-label="게임 버전">ZOO:CAFE v49.2 · Android GPS Fix</div>
-      <div class="gps-status-hud" id="gpsStatusHud" hidden></div><div class="interaction" id="interaction" hidden><span class="key">E</span><span id="interactionText">카페 들어가기</span></div>
+      <div class="version-badge" aria-label="게임 버전">ZOO:CAFE v52.6 · Growing AI</div><div class="interaction" id="interaction" hidden><span class="key">E</span><span id="interactionText">카페 들어가기</span></div>
       <div class="mobile-controls" id="mobileControls" aria-label="모바일 게임 조작">
         <div class="virtual-stick" id="virtualStick"><div class="stick-ring"></div><div class="stick-knob" id="stickKnob"></div></div>
         <div class="mobile-actions"><button type="button" class="mobile-chat" id="mobileChatBtn">💬</button><button type="button" class="mobile-action" id="mobileActionBtn"><b>E</b><span>상호작용</span></button></div>
@@ -74,5 +67,5 @@
 </div>
 <audio id="cityBgm" src="audio/city-outside.mp3" preload="auto" loop></audio>
 <audio id="cafeBgm" src="audio/cafe-inside.mp3" preload="auto" loop></audio>
-<script src="assets.js?v=492"></script><script src="game.js?v=492"></script><script src="ui.js?v=492"></script><script src="auth.js?v=492"></script><script src="online.js?v=492"></script><script src="map_garden.js?v=492"></script>
+<script src="assets.js?v=500"></script><script src="game.js?v=526"></script><script src="entity_engine.js?v=526"></script><script src="ui.js?v=526"></script><script src="auth.js?v=500"></script><script src="online.js?v=500"></script>
 </body></html>

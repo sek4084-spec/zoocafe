@@ -181,3 +181,17 @@ body.v45-map-screen .virtual-stick{display:block!important}
 .z48-chat-face{width:32px;height:32px;object-fit:contain;image-rendering:pixelated;grid-row:1/3}
 .z48-chat-row b,.z48-chat-row span{grid-column:2}
 .z48-field-note{position:absolute;z-index:10006;left:12px;bottom:max(18px,env(safe-area-inset-bottom));padding:7px 10px;border-radius:12px;background:#4b382cdb;color:#fff1d2;font:800 10px/1 system-ui;pointer-events:none}
+
+/* v50.1: retired GPS/Google-map experiment UI */
+.gps-status-hud,.google-garden,.z46-map-brand,.z46-map-hint,.z48-map-actions,.z48-quick-chat,.z48-full-chat,.garden-cafe-return{display:none!important}
+
+/* v51 — Character Engine: background / world / entities / UI are independent layers */
+.game-stage{isolation:isolate}
+.scene-video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:0;pointer-events:none}
+#game{position:absolute!important;inset:0!important;z-index:1!important}
+#entityLayer{position:absolute!important;inset:0!important;width:100%!important;height:100%!important;z-index:8!important;pointer-events:none!important;image-rendering:pixelated!important;image-rendering:crisp-edges!important}
+.game-stage>.hud,.game-stage>.version-badge,.game-stage>.interaction,.game-stage>.mobile-controls,.game-stage>.chat-input-wrap{z-index:20!important}
+.version-badge,.interaction,.chat-panel,.side-panel,.brandbar{image-rendering:pixelated}
+body.scene-video-active #game{background:transparent!important}
+/* GPS / Google-map experiment is retired. */
+.gps-status-hud,.google-garden,.z46-map-brand,.z46-map-hint,.z48-map-actions,.z48-quick-chat,.z48-full-chat,.garden-cafe-return{display:none!important}

@@ -141,13 +141,107 @@ function renderChat(){chatLog.innerHTML=chatMessages.length?chatMessages.slice(-
 function openChat(){if(chatActive)return;chatActive=true;for(const k in keys)keys[k]=false;document.body.classList.add('chatting');chatInputWrap.hidden=false;chatInput.value='';setTimeout(()=>chatInput.focus(),0)}
 function closeChat(){chatActive=false;document.body.classList.remove('chatting');chatInputWrap.hidden=true;chatInput.blur();for(const k in keys)keys[k]=false}
 function addChatMessage(name,text){chatMessages.push({name,text,time:Date.now()});if(chatMessages.length>50)chatMessages.shift();renderChat()}
-function sendChat(){const value=chatInput.value.trim();if(!value){closeChat();return}const name=window.ZOO_USER?.nickname||'멍사자';addChatMessage(name,value);bubble={text:value,until:performance.now()+4200};if(window.ZooCafeNet?.connected)window.ZooCafeNet.sendChat(value);chatInput.value='';closeChat()}
-function bubbleText(text,x,y){if(!text)return;ctx.save();ctx.font='800 13px Arial,"Noto Sans KR",sans-serif';const maxW=250,pad=10;let shown=text.length>34?text.slice(0,34)+'…':text;let tw=Math.min(maxW,ctx.measureText(shown).width+pad*2),bh=34,bx=clamp(x-tw/2,8,W-tw-8),by=clamp(y-82,8,H-bh-14);RR(bx,by,tw,bh,7,'rgba(255,249,229,.97)','#5a4031',3);ctx.fillStyle='#5a4031';ctx.beginPath();ctx.moveTo(clamp(x,bx+13,bx+tw-13),by+bh+8);ctx.lineTo(clamp(x-7,bx+9,bx+tw-18),by+bh-1);ctx.lineTo(clamp(x+7,bx+18,bx+tw-9),by+bh-1);ctx.closePath();ctx.fill();T(shown,bx+tw/2,by+17,13,'#49352b','center',800);ctx.restore()}
+function sendChat(){const value=chatInput.value.trim();if(!value){closeChat();return}const name=window.ZOO_USER?.nickname||'멍사자';addChatMessage(name,value);bubble={text:value,until:performance.now()+4200};if(window.ZooCafeNet?.connected)window.ZooCafeNet.sendChat(value);window.ZooCafeAI?.hear?.(value);chatInput.value='';closeChat()}
+function bubbleText(text,x,y,thinking=false){
+ if(!text&&!thinking)return;
+ ctx.save();const fontSize=13,lineH=18,padX=12,padY=8,maxW=280,minW=thinking?48:34;
+ ctx.font=`800 ${fontSize}px Arial,"Noto Sans KR",sans-serif`;
+ const raw=thinking?'...':String(text),lines=[];let line='';
+ for(const ch of [...raw]){const test=line+ch;if(ctx.measureText(test).width>maxW-padX*2&&line){lines.push(line);line=ch}else line=test}
+ if(line)lines.push(line);const visible=lines.slice(0,4);if(lines.length>4)visible[3]=visible[3].slice(0,-1)+'…';
+ const contentW=Math.max(...visible.map(v=>ctx.measureText(v).width),0),tw=Math.max(minW,Math.min(maxW,contentW+padX*2)),bh=Math.max(34,visible.length*lineH+padY*2);
+ const bx=clamp(x-tw/2,8,W-tw-8),by=clamp(y-88-(bh-34),8,H-bh-14);RR(bx,by,tw,bh,8,'#fff','#211a17',2);
+ ctx.fillStyle='#fff';ctx.strokeStyle='#211a17';ctx.lineWidth=2;ctx.beginPath();const tx=clamp(x,bx+14,bx+tw-14);ctx.moveTo(tx-7,by+bh-1);ctx.lineTo(tx,by+bh+8);ctx.lineTo(tx+7,by+bh-1);ctx.closePath();ctx.fill();ctx.stroke();
+ ctx.fillStyle='#111';ctx.textAlign='center';ctx.textBaseline='middle';visible.forEach((v,i)=>ctx.fillText(v,bx+tw/2,by+padY+lineH*(i+.5)));ctx.restore();
+}
+
+/* ================================================================
+   ZOO:CAFE v50 — autonomous character AI foundation
+   멍사자 + 쥐무는토끼: wandering, noticing the player, approaching,
+   greeting, reacting to chat, resting, and resuming their own routine.
+   This behavior runs locally with no external AI/API key.
+   ================================================================ */
+const aiFriends=[
+ {id:'ai-mung',name:'AI 멍사자',animal:'lion',title:'카페지기',room:'cafe',
+  x:300,y:455,dir:'right',frame:2,t:0,moving:false,target:null,state:'wander',
+  nextThink:0,bubble:'',bubbleUntil:0,lastTalk:0,thinking:false,
+  lines:['커피 향이 좋다 ☕','오늘도 천천히 둘러봐야지.','누가 놀러 왔나?','잠깐 창가에 앉아볼까?']},
+ {id:'ai-rabbit',name:'AI 쥐무는토끼',animal:'rabbit',title:'이야기 기록자',room:'cafe',
+  x:720,y:455,dir:'left',frame:2,t:0,moving:false,target:null,state:'wander',
+  nextThink:0,bubble:'',bubbleUntil:0,lastTalk:0,thinking:false,
+  lines:['조용히 글을 좀 써볼까…','좋은 이야기는 기억해 둬야지.','커피 한 모금만…','오늘은 어떤 이야기가 생길까?']}
+];
+function aiPlayer(){return mode==='cafe'?cafePlayer:player}
+function aiSay(n,text,ms=4800){
+ n.thinking=false;n.bubble=String(text||'').slice(0,260);n.bubbleUntil=performance.now()+ms;n.lastTalk=performance.now();
+ addChatMessage(n.name,n.bubble);
+}
+function aiThinking(n){n.thinking=true;n.bubble='';n.bubbleUntil=performance.now()+15000;}
+function aiReply(n,text){
+ // v52: language intelligence lives on the server; movement intelligence remains local.
+ if(window.ZooCafeNet?.connected&&window.ZooCafeNet.sendNpcChat){
+   aiThinking(n);
+   window.ZooCafeNet.sendNpcChat(n.id,text);
+ }else{
+   aiSay(n,'잠깐 연결이 끊겼네. 다시 이야기해줄래?',3200);
+ }
+}
+function aiReceiveReply(m){
+ const n=aiFriends.find(v=>v.id===m.npcId);if(!n)return;
+ n.thinking=false;
+ const p=aiPlayer();
+ n.target={x:p.x+(n.x<p.x?-68:68),y:p.y+22};n.state='approach';
+ aiSay(n,String(m.text||'').trim()||'응, 듣고 있어.',6200);
+}
+function aiPickTarget(n){
+ const bounds=n.room==='cafe'?{minX:120,maxX:840,minY:330,maxY:485}:{minX:120,maxX:2760,minY:120,maxY:1680};
+ n.target={x:bounds.minX+Math.random()*(bounds.maxX-bounds.minX),y:bounds.minY+Math.random()*(bounds.maxY-bounds.minY)};
+ n.state='wander';n.nextThink=performance.now()+3500+Math.random()*5000;
+}
+function aiStep(n){
+ if(n.room!==mode)return;
+ const now=performance.now(),p=aiPlayer(),dist=Math.hypot(p.x-n.x,p.y-n.y);
+ if(dist<230 && now-n.lastTalk>14000){
+   n.state='approach';n.target={x:p.x+(n.x<p.x?-72:72),y:p.y+25};
+   if(dist<115){n.target=null;n.state='social';aiSay(n,n.animal==='lion'?'어, 왔구나! 여기서 뭐 하고 있었어?':'안녕… 잠깐 이야기할래?');n.nextThink=now+6500;}
+ } else if(now>n.nextThink && n.state!=='approach'){
+   if(Math.random()<.28){n.state='idle';n.target=null;n.nextThink=now+2500+Math.random()*3500;if(Math.random()<.35)aiSay(n,n.lines[Math.floor(Math.random()*n.lines.length)],3500)}
+   else aiPickTarget(n);
+ }
+ if(n.target){
+   const dx=n.target.x-n.x,dy=n.target.y-n.y,d=Math.hypot(dx,dy);
+   if(d<8){n.target=null;n.moving=false;n.state='idle';n.nextThink=now+1800+Math.random()*3500}
+   else{
+     const sp=n.state==='approach'?1.25:.72;n.x+=dx/d*sp;n.y+=dy/d*sp;n.moving=true;
+     if(Math.abs(dx)>Math.abs(dy))n.dir=dx<0?'left':'right';else n.dir=dy<0?'up':'down';
+     animate(n,true);
+   }
+ }else animate(n,false);
+}
+function updateAiFriends(){for(const n of aiFriends)aiStep(n)}
+function drawAiFriends(camX=0,camY=0){
+ for(const n of aiFriends){if(n.room!==mode)continue;
+   const x=n.x-camX,y=n.y-camY,im=characterImage(n.animal,n.dir,n.frame);
+   if(im){shadow(x,y+18,22,7,.13);ctx.drawImage(im,Math.round(x-SPRITE_W/2),Math.round(y-SPRITE_H+22),SPRITE_W,SPRITE_H)}
+   drawNameTitle(n.name,n.title,x,y-SPRITE_H+8);
+   if(n.bubble&&performance.now()<n.bubbleUntil)bubbleText(n.bubble,x,y);
+ }}
+function aiHearPlayer(text){
+ const p=aiPlayer();
+ const candidates=aiFriends.filter(n=>n.room===mode).sort((a,b)=>Math.hypot(p.x-a.x,p.y-a.y)-Math.hypot(p.x-b.x,p.y-b.y));
+ const n=candidates[0];if(!n)return;
+ const d=Math.hypot(p.x-n.x,p.y-n.y);
+ if(d>360)return;
+ n.target={x:p.x+(n.x<p.x?-68:68),y:p.y+22};n.state='approach';
+ setTimeout(()=>{if(n.room===mode)aiReply(n,text)},120+Math.random()*180);
+}
+window.ZooCafeAI={friends:aiFriends,hear:aiHearPlayer,receiveReply:aiReceiveReply};
+
 renderChat();
 function drawRemote(r,camX=0,camY=0){const im=characterImage(r.animal||'lion',r.dir||'down',r.frame||2);if(!im)return;const x=r.x-camX,y=r.y-camY;shadow(x,y+18,22,7,.13);ctx.drawImage(im,Math.round(x-SPRITE_W/2),Math.round(y-SPRITE_H+22),SPRITE_W,SPRITE_H);drawNameTitle(r.nickname,r.title,x,y-SPRITE_H+8);const b=remoteBubbles.get(r.id);if(b&&performance.now()<b.until)bubbleText(b.text,x,y);}
 function drawRemotes(room,camX=0,camY=0){for(const r of remotePlayers.values())if(r.mode===room)drawRemote(r,camX,camY)}
-function draw(){ctx.clearRect(0,0,W,H);if(mode==='world'){ctx.save();ctx.translate(-Math.round(camera.x),-Math.round(camera.y));drawWorld();sprite(player,player.x,player.y);drawNameTitle(window.ZOO_USER?.nickname,window.ZOO_USER?.title,player.x,player.y-SPRITE_H/2-4);for(const r of remotePlayers.values())if(r.mode==='world')drawRemote(r,0,0);ctx.restore();if(performance.now()<bubble.until)bubbleText(bubble.text,player.x-camera.x,player.y-camera.y);interaction.hidden=chatActive||!nearCafe();interactionText.textContent='카페 들어가기'}else{drawCafe();sprite(cafePlayer,cafePlayer.x,cafePlayer.y);drawNameTitle(window.ZOO_USER?.nickname,window.ZOO_USER?.title,cafePlayer.x,cafePlayer.y-SPRITE_H/2-4);for(const r of remotePlayers.values())if(r.mode==='cafe')drawRemote(r,0,0);if(performance.now()<bubble.until)bubbleText(bubble.text,cafePlayer.x,cafePlayer.y);interaction.hidden=true;RR(420,486,120,40,5,'rgba(54,43,34,.94)');RR(432,492,28,28,4,'#f5df9c');T('E',446,506,16,C.ink,'center',900);T('나가기',500,506,15,'#fff7e6','center',800)}}
-function loop(now){let dt=Math.min(.033,(now-last)/1000);last=now;cooldown=Math.max(0,cooldown-dt);waterT+=dt;if(ready){if(mode==='world'){moveWorld();updateCamera(dt)}else moveCafe();window.ZooCafeNet?.tick?.();draw()}requestAnimationFrame(loop)}
+function draw(){ctx.clearRect(0,0,W,H);if(mode==='world'){ctx.save();ctx.translate(-Math.round(camera.x),-Math.round(camera.y));drawWorld();sprite(player,player.x,player.y);drawNameTitle(window.ZOO_USER?.nickname,window.ZOO_USER?.title,player.x,player.y-SPRITE_H/2-4);for(const r of remotePlayers.values())if(r.mode==='world')drawRemote(r,0,0);drawAiFriends(camera.x,camera.y);ctx.restore();if(performance.now()<bubble.until)bubbleText(bubble.text,player.x-camera.x,player.y-camera.y);interaction.hidden=chatActive||!nearCafe();interactionText.textContent='카페 들어가기'}else{drawCafe();sprite(cafePlayer,cafePlayer.x,cafePlayer.y);drawNameTitle(window.ZOO_USER?.nickname,window.ZOO_USER?.title,cafePlayer.x,cafePlayer.y-SPRITE_H/2-4);for(const r of remotePlayers.values())if(r.mode==='cafe')drawRemote(r,0,0);drawAiFriends(0,0);if(performance.now()<bubble.until)bubbleText(bubble.text,cafePlayer.x,cafePlayer.y);interaction.hidden=true;RR(420,486,120,40,5,'rgba(54,43,34,.94)');RR(432,492,28,28,4,'#f5df9c');T('E',446,506,16,C.ink,'center',900);T('나가기',500,506,15,'#fff7e6','center',800)}}
+function loop(now){let dt=Math.min(.033,(now-last)/1000);last=now;cooldown=Math.max(0,cooldown-dt);waterT+=dt;if(ready){if(mode==='world'){moveWorld();updateCamera(dt)}else moveCafe();updateAiFriends();window.ZooCafeNet?.tick?.();draw()}requestAnimationFrame(loop)}
 addEventListener('keydown',e=>{if(e.target?.matches?.('input, textarea, select, [contenteditable=\"true\"]'))return;let k=e.key.toLowerCase();if(chatActive){if(k==='escape'){e.preventDefault();closeChat()}return}if(k==='enter'){e.preventDefault();openChat();return}keys[k]=true;if(k.startsWith('arrow'))e.preventDefault();if(k==='e'){mode==='world'?enter():exit()}});
 addEventListener('keyup',e=>{if(!chatActive)keys[e.key.toLowerCase()]=false});
 chatInput.addEventListener('keydown',e=>{e.stopPropagation();if(e.key==='Escape'){e.preventDefault();closeChat();return}if(e.key==='Enter'&&!e.isComposing){e.preventDefault();sendChat()}});
@@ -576,7 +670,7 @@ moveCafe=function(){moveIndoor();};
 draw=function(){
   ctx.clearRect(0,0,W,H);
   if(mode==='world'){
-    ctx.save();ctx.translate(-Math.round(camera.x),-Math.round(camera.y));drawWorld();sprite(player,player.x,player.y);drawNameTitle(window.ZOO_USER?.nickname,window.ZOO_USER?.title,player.x,player.y-SPRITE_H/2-4);for(const r of remotePlayers.values())if(r.mode==='world')drawRemote(r,0,0);ctx.restore();
+    ctx.save();ctx.translate(-Math.round(camera.x),-Math.round(camera.y));drawWorld();sprite(player,player.x,player.y);drawNameTitle(window.ZOO_USER?.nickname,window.ZOO_USER?.title,player.x,player.y-SPRITE_H/2-4);for(const r of remotePlayers.values())if(r.mode==='world')drawRemote(r,0,0);drawAiFriends(camera.x,camera.y);ctx.restore();
     if(performance.now()<bubble.until)bubbleText(bubble.text,player.x-camera.x,player.y-camera.y);
     const n=nearestEntrance();interaction.hidden=chatActive||!n;interactionText.textContent=n?`${n.name} 들어가기`:'들어가기';
   }else{
@@ -623,7 +717,7 @@ window.ZooCafeGame.getState=function(){const p=mode==='world'?player:cafePlayer;
     if(mode!=='world'){oldDraw();return;}
     ctx.clearRect(0,0,W,H);
     ctx.save();ctx.scale(MOBILE_WORLD_SCALE,MOBILE_WORLD_SCALE);ctx.translate(-Math.round(camera.x),-Math.round(camera.y));
-    drawWorld();sprite(player,player.x,player.y);drawNameTitle(window.ZOO_USER?.nickname,window.ZOO_USER?.title,player.x,player.y-SPRITE_H/2-4);for(const r of remotePlayers.values())if(r.mode==='world')drawRemote(r,0,0);ctx.restore();
+    drawWorld();sprite(player,player.x,player.y);drawNameTitle(window.ZOO_USER?.nickname,window.ZOO_USER?.title,player.x,player.y-SPRITE_H/2-4);for(const r of remotePlayers.values())if(r.mode==='world')drawRemote(r,0,0);drawAiFriends(camera.x,camera.y);ctx.restore();
     if(performance.now()<bubble.until)bubbleText(bubble.text,(player.x-camera.x)*MOBILE_WORLD_SCALE,(player.y-camera.y)*MOBILE_WORLD_SCALE);
     const n=nearestEntrance();interaction.hidden=chatActive||!n;interactionText.textContent=n?`${n.name} 들어가기`:'들어가기';
   };
@@ -654,7 +748,7 @@ window.ZooCafeGame.sendQuickChat=function(text){
   text=String(text||'').trim().slice(0,80);if(!text)return false;
   const name=window.ZOO_USER?.nickname||'멍사자';
   addChatMessage(name,text);bubble={text,until:performance.now()+5200};
-  if(window.ZooCafeNet?.connected)window.ZooCafeNet.sendChat(text);
+  if(window.ZooCafeNet?.connected)window.ZooCafeNet.sendChat(text);window.ZooCafeAI?.hear?.(text);
   window.dispatchEvent(new CustomEvent('zoo-map-chat',{detail:{id:window.ZOO_USER?.id,text,me:true}}));
   return true;
 };
@@ -878,7 +972,7 @@ nearNearbyCafe=function(){return Math.hypot(nearbyPlayer.x-1440,nearbyPlayer.y-7
 const z40MoveCafeBase=moveCafe;moveCafe=function(){if(mode==='nearby'){moveNearby();return}z40MoveCafeBase();if(mode==='cafe'&&Z40_MOBILE()){const vw=760,vh=430;z40CafeCam.x+=(clamp(cafePlayer.x-vw/2,0,W-vw)-z40CafeCam.x)*.16;z40CafeCam.y+=(clamp(cafePlayer.y-vh/2,0,H-vh)-z40CafeCam.y)*.16}}
 const z40DrawBase=draw;draw=function(){
  if(mode==='nearby'){ctx.clearRect(0,0,W,H);ctx.save();ctx.translate(-Math.round(z40NearCam.x),-Math.round(z40NearCam.y));z40DrawNearbyWorld();sprite(nearbyPlayer,nearbyPlayer.x,nearbyPlayer.y);drawNameTitle(window.ZOO_USER?.nickname,window.ZOO_USER?.title,nearbyPlayer.x,nearbyPlayer.y-SPRITE_H/2-4);for(const r of remotePlayers.values())if(r.mode==='nearby'){drawRemote(r,0,0);if(Number.isFinite(r.distanceM))T(`약 ${r.distanceM}m`,r.x,r.y-SPRITE_H-17,10,'#fff4d2','center',900)}ctx.restore();if(performance.now()<bubble.until)bubbleText(bubble.text,nearbyPlayer.x-z40NearCam.x,nearbyPlayer.y-z40NearCam.y);interaction.hidden=chatActive||!nearNearbyCafe();interactionText.textContent='카페로 들어가기';z40UpdateHud();return}
- if(mode==='cafe'&&Z40_MOBILE()){ctx.clearRect(0,0,W,H);const scale=1.26;ctx.save();ctx.scale(scale,scale);ctx.translate(-Math.round(z40CafeCam.x),-Math.round(z40CafeCam.y));drawCafe();sprite(cafePlayer,cafePlayer.x,cafePlayer.y);drawNameTitle(window.ZOO_USER?.nickname,window.ZOO_USER?.title,cafePlayer.x,cafePlayer.y-SPRITE_H/2-4);for(const r of remotePlayers.values())if(r.mode==='cafe')drawRemote(r,0,0);if(performance.now()<bubble.until)bubbleText(bubble.text,cafePlayer.x,cafePlayer.y);ctx.restore();interaction.hidden=true;z40UpdateHud();return}
+ if(mode==='cafe'&&Z40_MOBILE()){ctx.clearRect(0,0,W,H);const scale=1.26;ctx.save();ctx.scale(scale,scale);ctx.translate(-Math.round(z40CafeCam.x),-Math.round(z40CafeCam.y));drawCafe();sprite(cafePlayer,cafePlayer.x,cafePlayer.y);drawNameTitle(window.ZOO_USER?.nickname,window.ZOO_USER?.title,cafePlayer.x,cafePlayer.y-SPRITE_H/2-4);for(const r of remotePlayers.values())if(r.mode==='cafe')drawRemote(r,0,0);drawAiFriends(0,0);if(performance.now()<bubble.until)bubbleText(bubble.text,cafePlayer.x,cafePlayer.y);ctx.restore();interaction.hidden=true;z40UpdateHud();return}
  z40DrawBase();z40UpdateHud();
 };
 const z40GetState=window.ZooCafeGame.getState;window.ZooCafeGame.getState=function(){if(mode==='nearby')return {mode,x:nearbyPlayer.x,y:nearbyPlayer.y,dir:nearbyPlayer.dir,frame:nearbyPlayer.frame,moving:nearbyPlayer.moving};return z40GetState()};
@@ -947,3 +1041,55 @@ draw=function(){
 /* v44 — Google Maps garden bridge. GPS, not joystick, is the garden position. */
 const z44NearCafeBase=nearNearbyCafe;
 nearNearbyCafe=function(){return mode==='nearby'?true:z44NearCafeBase()};
+
+
+/* ================================================================
+   ZOO:CAFE v50.1 — AI visibility + complete GPS plaza rollback
+   ================================================================ */
+
+// The old v38 GPS-plaza exit override was still active in the legacy chain.
+// Restore the normal indoor -> outdoor-world exit path.
+exit=function(){
+  if(mode==='world'||cooldown>0)return;
+  const b=mode==='cafe'?{door:cafe.door}:extraBuildings.find(v=>v.id===mode);
+  mode='world';syncBgm();
+  if(b){player.x=b.door.x+b.door.w/2;player.y=b.door.y+b.door.h+55}
+  player.dir='down';
+  camera.x=clamp(player.x-W/2,0,WORLD_W-W);
+  camera.y=clamp(player.y-H/2,0,WORLD_H-H);
+  cooldown=.28;
+  window.ZooCafeNet?.tick?.(true);
+};
+
+// Desktop's later legacy draw override omitted AI friends from the café.
+// Draw them with the exact same sprite() renderer used by the player.
+function drawAiFriendsVisible(){
+  if(mode!=='cafe')return;
+  for(const n of aiFriends){
+    if(n.room!=='cafe')continue;
+    sprite(n,n.x,n.y,n.animal);
+    drawNameTitle(n.name,n.title,n.x,n.y-SPRITE_H/2-4);
+    if(n.bubble&&performance.now()<n.bubbleUntil)bubbleText(n.bubble,n.x,n.y);
+  }
+}
+const z501DrawBase=draw;
+draw=function(){
+  z501DrawBase();
+  // Mobile v40 already paints AI friends inside its scaled café renderer.
+  // Desktop needs this final overlay because a later legacy renderer replaced the v50 draw.
+  if(mode==='cafe' && !Z40_MOBILE())drawAiFriendsVisible();
+};
+
+// No GPS UI/mode should be reachable in v50.1.
+window.ZooCafeGame.returnToCafe=function(){
+  if(mode==='world')return false;
+  exit();
+  return true;
+};
+
+
+/* v51 — final navigation guard: retired GPS/nearby mode cannot be entered. */
+try{
+  enterNearbyFromCafe=async function(){ exit(); return false; };
+  requestNearbyLocation=function(){ return Promise.resolve(false); };
+}catch(e){}
