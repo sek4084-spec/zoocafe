@@ -131,3 +131,10 @@ Gemini가 429/5xx(특히 503 과부하)를 반환하면 짧게 재시도한 뒤 
 - Cafe Chat opens the real conversation history plus input; player, Mungsaja, rabbit and multiplayer messages share the same log.
 - NPC display names are now 멍사자 / 쥐무는토끼 (no AI prefix).
 - Existing multiplayer, Gemini hybrid brain, Shared Ears and PostgreSQL persistence are preserved.
+
+
+## v54.6 Mobile Lounge UI
+- 모바일 세로 화면을 기준으로 좌/우 기능 바 + 하단 상시 대화 기록 패널을 배치했습니다.
+- 원본 16:9 Flow 영상은 자르지 않고 중앙에 유지하고, 남는 세로 공간은 같은 영상을 블러 확장하여 검은 여백 대신 살아있는 배경처럼 보이게 합니다.
+- 채팅 기록에는 플레이어/NPC/멀티플레이 대화가 함께 표시되며 채팅 버튼을 누르면 하단 입력창이 열립니다.
+- PC 화면, WebSocket 멀티, Gemini/서버 기억/PostgreSQL 구조는 유지합니다.

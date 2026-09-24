@@ -1383,3 +1383,16 @@ addEventListener('DOMContentLoaded',()=>{
     b.addEventListener('click',e=>{e.preventDefault();e.stopImmediatePropagation();z545OpenCafeChat();},{capture:true});
   }
 });
+
+
+/* v54.6 — sync the blurred live backdrop used by the portrait mobile lounge. */
+const z546BlurVideo=document.getElementById('sceneVideoBlur');
+function z546SyncBlurVideo(){
+  if(!z546BlurVideo||!z543CafeVideo)return;
+  if(mode!=='cafe'){z546BlurVideo.pause();return;}
+  z546BlurVideo.muted=true;
+  if(Math.abs((z546BlurVideo.currentTime||0)-(z543CafeVideo.currentTime||0))>.35){try{z546BlurVideo.currentTime=z543CafeVideo.currentTime||0}catch{}}
+  z546BlurVideo.play().catch(()=>{});
+}
+setInterval(z546SyncBlurVideo,1200);
+addEventListener('visibilitychange',()=>{if(!document.hidden)z546SyncBlurVideo()});
