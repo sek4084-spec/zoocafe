@@ -1,6 +1,6 @@
 {
   "name": "zoocafe-online",
-  "version": "28.0.0",
+  "version": "52.8.0",
   "private": true,
   "description": "ZOO:CAFE real-time multiplayer prototype",
   "scripts": {
@@ -8,6 +8,7 @@
   },
   "dependencies": {
     "express": "4.21.2",
-    "ws": "8.18.3"
+    "ws": "8.18.3",
+    "pg": "8.13.1"
   }
 }

@@ -7,13 +7,31 @@ const app = express();
 const { WebSocketServer } = require('ws');
 const NPC_MEMORY_FILE=path.join(__dirname,'data','npc-memory.json');
 const NPC_GROWTH_FILE=path.join(__dirname,'data','npc-growth.json');
+const {Pool}=require('pg');
+const dbUrl=process.env.DATABASE_URL||'';
+let npcPool=null;
+let npcDbReady=Promise.resolve(false);
+async function initNpcDb(){
+ if(!dbUrl)return false;
+ try{
+  npcPool=new Pool({connectionString:dbUrl,ssl:process.env.NODE_ENV==='production'?{rejectUnauthorized:false}:undefined});
+  await npcPool.query(`CREATE TABLE IF NOT EXISTS zoocafe_npc_state (id TEXT PRIMARY KEY, payload JSONB NOT NULL, updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW())`);
+  const r=await npcPool.query(`SELECT id,payload FROM zoocafe_npc_state WHERE id IN ('memory','growth')`);
+  for(const row of r.rows){if(row.id==='memory'&&row.payload)npcMemory=row.payload;if(row.id==='growth'&&row.payload)npcGrowth=row.payload}
+  console.log('NPC persistent memory: PostgreSQL connected');return true;
+ }catch(e){console.warn('NPC PostgreSQL unavailable; using local JSON fallback:',e.message);npcPool=null;return false}
+}
+function persistNpcDb(id,payload){
+ if(!npcPool)return;
+ npcPool.query(`INSERT INTO zoocafe_npc_state(id,payload,updated_at) VALUES($1,$2,NOW()) ON CONFLICT(id) DO UPDATE SET payload=EXCLUDED.payload,updated_at=NOW()`,[id,JSON.stringify(payload)]).catch(e=>console.warn('npc db save',e.message));
+}
 function loadNpcMemory(){try{return JSON.parse(fs.readFileSync(NPC_MEMORY_FILE,'utf8'))}catch(e){return {}}}
 let npcMemory=loadNpcMemory();
-function saveNpcMemory(){try{fs.mkdirSync(path.dirname(NPC_MEMORY_FILE),{recursive:true});fs.writeFileSync(NPC_MEMORY_FILE,JSON.stringify(npcMemory,null,2))}catch(e){console.error('npc memory save',e.message)}}
+function saveNpcMemory(){try{fs.mkdirSync(path.dirname(NPC_MEMORY_FILE),{recursive:true});fs.writeFileSync(NPC_MEMORY_FILE,JSON.stringify(npcMemory,null,2))}catch(e){console.error('npc memory save',e.message)};persistNpcDb('memory',npcMemory)}
 function loadNpcGrowth(){try{return JSON.parse(fs.readFileSync(NPC_GROWTH_FILE,'utf8'))}catch(e){return {}}}
 let npcGrowth=loadNpcGrowth();
-function saveNpcGrowth(){try{fs.mkdirSync(path.dirname(NPC_GROWTH_FILE),{recursive:true});fs.writeFileSync(NPC_GROWTH_FILE,JSON.stringify(npcGrowth,null,2))}catch(e){console.error('npc growth save',e.message)}}
-function growthFor(k){if(!npcGrowth[k])npcGrowth[k]={level:1,xp:0,talks:0,memories:0};return npcGrowth[k]}
+function saveNpcGrowth(){try{fs.mkdirSync(path.dirname(NPC_GROWTH_FILE),{recursive:true});fs.writeFileSync(NPC_GROWTH_FILE,JSON.stringify(npcGrowth,null,2))}catch(e){console.error('npc growth save',e.message)};persistNpcDb('growth',npcGrowth)}
+function growthFor(k){if(!npcGrowth[k])npcGrowth[k]={level:1,xp:0,talks:0,memories:0,lastSeenAt:0,lastWelcomeAt:0};return npcGrowth[k]}
 function relationName(level){if(level>=10)return '오랜 친구';if(level>=7)return '가까운 친구';if(level>=4)return '친한 사이';if(level>=2)return '낯익은 손님';return '처음 알아가는 사이'}
 function addGrowth(k,memorySaved){const g=growthFor(k);g.talks+=1;g.xp+=2+(memorySaved?3:0);if(memorySaved)g.memories+=1;g.level=Math.min(20,1+Math.floor(g.xp/20));saveNpcGrowth();return g}
 const npcRecent=new Map();
@@ -23,11 +41,46 @@ const NPCS={
 };
 function memKey(userId,npcId){return String(userId)+'::'+npcId}
 function recentFor(k){if(!npcRecent.has(k))npcRecent.set(k,[]);return npcRecent.get(k)}
+function normalizeMemory(s){return String(s||'').replace(/\s+/g,' ').trim().slice(0,180)}
+function rememberFact(k,fact){fact=normalizeMemory(fact);if(!fact)return false;if(!npcMemory[k])npcMemory[k]=[];if(npcMemory[k].some(v=>normalizeMemory(v)===fact))return false;npcMemory[k].push(fact);npcMemory[k]=npcMemory[k].slice(-40);saveNpcMemory();const g=growthFor(k);g.memories=(g.memories||0)+1;g.xp=(g.xp||0)+3;g.level=Math.min(20,1+Math.floor(g.xp/20));saveNpcGrowth();return true}
+function learnDirectFact(k,text){
+ const raw=String(text||'').trim();let m;
+ const patterns=[
+  [/^나는\s+(.{1,60}?)(?:을|를)?\s*좋아해(?:요)?[.!?]?$/,'취향: $1을/를 좋아함'],
+  [/^내가\s+좋아하는\s+건\s+(.{1,60})[.!?]?$/,'취향: $1을 좋아함'],
+  [/^내\s+취미는\s+(.{1,60})[.!?]?$/,'취미: $1'],
+  [/^나는\s+(.{1,60}?)(?:이야|야|입니다|이에요|예요)[.!?]?$/,'자기소개: $1'],
+  [/^(.{1,70}?)(?:라고|라고\s*)?\s*기억해(?:줘)?[.!?]?$/,'플레이어가 기억해 달라고 한 내용: $1']
+ ];
+ for(const [re,fmt] of patterns){m=raw.match(re);if(m){return rememberFact(k,fmt.replace('$1',m[1].trim()))}}
+ return false;
+}
+function cleanMemoryForSpeech(v){return String(v||'').replace(/^(취향|취미|자기소개|플레이어가 기억해 달라고 한 내용):\s*/,'').replace(/^유저는\s*/,'').slice(0,70)}
+function welcomeFor(user,npcId){
+ const k=memKey(user.id,npcId),g=growthFor(k),mem=npcMemory[k]||[],npc=NPCS[npcId];
+ if((g.talks||0)<2 && !mem.length)return null;
+ const latest=cleanMemoryForSpeech(mem[mem.length-1]);
+ let text;
+ if(latest){text=npcId==='ai-mung'?`${user.nickname}, 다시 왔네! 지난번에 ${latest} 이야기했던 거 기억나. 그 뒤로는 어때?`:`${user.nickname}… 다시 왔구나. 지난번에 ${latest} 이야기했었지. 요즘은 어때?`}
+ else{text=npcId==='ai-mung'?`${user.nickname}, 다시 왔네! 우리 이제 ${relationName(g.level)} 정도는 된 것 같은데? 오늘은 어땠어?`:`${user.nickname}… 또 왔네. 전에 나눈 이야기들이 조금씩 쌓이고 있어. 오늘은 무슨 이야기 할래?`}
+ return {npcId,text:text.slice(0,220),growth:{level:g.level,xp:g.xp,talks:g.talks,memories:g.memories,relation:relationName(g.level)}};
+}
+function returningNpcWelcomes(user){
+ const now=Date.now(),out=[];
+ for(const npcId of Object.keys(NPCS)){
+  const k=memKey(user.id,npcId),g=growthFor(k),w=welcomeFor(user,npcId);
+  if(!w)continue;
+  // 한 번 들어올 때마다 도배하지 않도록 30분 쿨다운. 서버 재시작 후에도 growth에 남는다.
+  if(now-(g.lastWelcomeAt||0)<30*60*1000)continue;
+  g.lastWelcomeAt=now;g.lastSeenAt=now;out.push(w);
+ }
+ if(out.length)saveNpcGrowth();return out;
+}
 function fallbackNpc(npcId,text){return '이해하기 쉽게 다시 말해줄래?'}
 async function npcThink(user,npcId,text){
- const npc=NPCS[npcId]||NPCS['ai-mung'],k=memKey(user.id,npcId),mem=npcMemory[k]||[],recent=recentFor(k),growth=growthFor(k);
+ const npc=NPCS[npcId]||NPCS['ai-mung'],k=memKey(user.id,npcId),recent=recentFor(k),directLearned=learnDirectFact(k,text),mem=npcMemory[k]||[],growth=growthFor(k);
  const apiKey=process.env.GEMINI_API_KEY;
- if(!apiKey)return {reply:fallbackNpc(npcId,text),memory:null,ai:false,provider:'fallback'};
+ if(!apiKey){const grown=addGrowth(k,false);return {reply:fallbackNpc(npcId,text),memory:directLearned?'direct':null,ai:false,provider:'fallback',growth:{level:grown.level,xp:grown.xp,talks:grown.talks,memories:grown.memories,relation:relationName(grown.level)}};}
  const prompt=`너는 ZOO:CAFE의 ${npc.name}다.
 성격: ${npc.personality}
 유저 이름: ${user.nickname}
@@ -89,19 +142,16 @@ ${recent.slice(-8).map(x=>x.role+': '+x.text).join('\n')||'없음'}
   if(!out)return {reply:fallbackNpc(npcId,text),memory:null,ai:false,provider:'fallback'};
   recent.push({role:'user',text:String(text).slice(0,300)},{role:npc.name,text:out.slice(0,300)});
   while(recent.length>16)recent.shift();
-  if(memory){
-   if(!npcMemory[k])npcMemory[k]=[];
-   if(!npcMemory[k].includes(memory)){
-    npcMemory[k].push(memory);npcMemory[k]=npcMemory[k].slice(-30);saveNpcMemory();
-   }
-  }
-  const grown=addGrowth(k,!!memory);
-  return {reply:out.slice(0,260),memory,ai:true,provider:'gemini',model:usedModel,growth:{level:grown.level,xp:grown.xp,talks:grown.talks,memories:grown.memories,relation:relationName(grown.level)}};
+  let aiMemorySaved=false;
+  if(memory)aiMemorySaved=rememberFact(k,memory);
+  const grown=addGrowth(k,false);
+  return {reply:out.slice(0,260),memory:(memory||directLearned?'saved':null),ai:true,provider:'gemini',model:usedModel,growth:{level:grown.level,xp:grown.xp,talks:grown.talks,memories:grown.memories,relation:relationName(grown.level)}};
  }catch(e){
   console.error('npcThink',e.message);
-  return {reply:fallbackNpc(npcId,text),memory:null,ai:false,provider:'fallback'};
+  const grown=addGrowth(k,false);return {reply:fallbackNpc(npcId,text),memory:directLearned?'direct':null,ai:false,provider:'fallback',growth:{level:grown.level,xp:grown.xp,talks:grown.talks,memories:grown.memories,relation:relationName(grown.level)}};
  }
 }
+npcDbReady=initNpcDb();
 const PORT = process.env.PORT || 3000;
 const DATA_DIR = path.join(__dirname, 'data');
 const USERS_FILE = path.join(DATA_DIR, 'users.json');
@@ -188,6 +238,9 @@ wss.on('connection',ws=>{
     }
     if(m.type==='state'){
       const old=c.mode, next=validModes.has(m.mode)?m.mode:c.mode;c.mode=next;
+      if(old!=='cafe'&&next==='cafe'){
+        for(const w of returningNpcWelcomes(c.user))wsSend(ws,{type:'npc_welcome',...w,personal:true,at:Date.now()});
+      }
       const maxX=next==='world'?2880:960,maxY=next==='world'?1800:540;
       c.x=Math.max(0,Math.min(maxX,Number(m.x)||0));c.y=Math.max(0,Math.min(maxY,Number(m.y)||0));
       c.dir=['up','down','left','right'].includes(m.dir)?m.dir:'down';c.frame=[1,2,3].includes(m.frame)?m.frame:2;c.moving=!!m.moving;

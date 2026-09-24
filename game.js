@@ -190,6 +190,11 @@ function aiReceiveThinking(m){
  const n=aiFriends.find(v=>v.id===m.npcId);if(!n)return;
  aiThinking(n);
 }
+function aiReceiveWelcome(m){
+ const n=aiFriends.find(v=>v.id===m.npcId);if(!n)return;
+ n.thinking=false;const p=aiPlayer();n.target={x:p.x+(n.x<p.x?-68:68),y:p.y+22};n.state='approach';
+ aiSay(n,String(m.text||'').trim()||'다시 왔네!',7600);
+}
 function aiReceiveReply(m){
  const n=aiFriends.find(v=>v.id===m.npcId);if(!n)return;
  n.thinking=false;
@@ -239,7 +244,7 @@ function aiHearPlayer(text){
  n.target={x:p.x+(n.x<p.x?-68:68),y:p.y+22};n.state='approach';
  setTimeout(()=>{if(n.room===mode)aiReply(n,text)},120+Math.random()*180);
 }
-window.ZooCafeAI={friends:aiFriends,hear:aiHearPlayer,receiveThinking:aiReceiveThinking,receiveReply:aiReceiveReply};
+window.ZooCafeAI={friends:aiFriends,hear:aiHearPlayer,receiveThinking:aiReceiveThinking,receiveReply:aiReceiveReply,receiveWelcome:aiReceiveWelcome};
 
 renderChat();
 function drawRemote(r,camX=0,camY=0){const im=characterImage(r.animal||'lion',r.dir||'down',r.frame||2);if(!im)return;const x=r.x-camX,y=r.y-camY;shadow(x,y+18,22,7,.13);ctx.drawImage(im,Math.round(x-SPRITE_W/2),Math.round(y-SPRITE_H+22),SPRITE_W,SPRITE_H);drawNameTitle(r.nickname,r.title,x,y-SPRITE_H+8);const b=remoteBubbles.get(r.id);if(b&&performance.now()<b.until)bubbleText(b.text,x,y);}

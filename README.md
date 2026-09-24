@@ -66,3 +66,12 @@ Gemini가 429/5xx(특히 503 과부하)를 반환하면 짧게 재시도한 뒤 
 - NPC memory and growth remain personal to the user who spoke, so one player's memories do not overwrite another player's relationship.
 - Mobile world rendering now falls back to a real grass canvas while PNG assets are still loading instead of leaving the transparent canvas over a black mobile stage.
 - Mobile canvas/entity visibility is forced on as a final safety rule.
+
+
+## v52.8 Growing Memory
+- NPC learns explicit player facts even if Gemini temporarily fails (likes, hobbies, remember-this phrases).
+- Memory and relationship growth are per player + per NPC.
+- When a returning player enters the cafe, an NPC can proactively greet them using a saved memory.
+- 30-minute proactive-greeting cooldown prevents spam.
+- Optional durable PostgreSQL persistence: set `DATABASE_URL`. Without it, local JSON remains as fallback and may reset on ephemeral hosts such as Render.
+- Render: add a PostgreSQL database, then set the web service `DATABASE_URL` to its internal connection URL.
