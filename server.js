@@ -196,7 +196,15 @@ wss.on('connection',ws=>{
     } else if(m.type==='npc_chat'){
       const text=String(m.text||'').trim().slice(0,300),npcId=NPCS[m.npcId]?m.npcId:'ai-mung';
       if(!text)return;
-      npcThink(c.user,npcId,text).then(result=>wsSend(ws,{type:'npc_reply',npcId,text:result.reply,memorySaved:!!result.memory,ai:result.ai,provider:result.provider||'fallback',model:result.model||null,at:Date.now()}));
+      // v52.7: NPC conversations are room events. Everyone in the same room sees the NPC think and answer.
+      // Personal memory/growth is still calculated only from the user who actually spoke to the NPC.
+      broadcastRoom(c.mode,{type:'npc_thinking',npcId,byUserId:c.user.id,byNickname:c.user.nickname,at:Date.now()});
+      npcThink(c.user,npcId,text).then(result=>{
+        broadcastRoom(c.mode,{type:'npc_reply',npcId,text:result.reply,memorySaved:!!result.memory,ai:result.ai,provider:result.provider||'fallback',model:result.model||null,byUserId:c.user.id,byNickname:c.user.nickname,at:Date.now()});
+      }).catch(err=>{
+        console.warn('npcThink unhandled',err?.message||err);
+        broadcastRoom(c.mode,{type:'npc_reply',npcId,text:'이해하기 쉽게 다시 말해줄래?',memorySaved:false,ai:false,provider:'fallback',model:null,byUserId:c.user.id,byNickname:c.user.nickname,at:Date.now()});
+      });
       } else if(m.type==='chat'){
       const text=clean(m.text).slice(0,120);if(!text)return;
       broadcastRoom(c.mode,{type:'chat',id:c.user.id,nickname:c.user.nickname,text,at:Date.now()});

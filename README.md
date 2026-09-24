@@ -59,3 +59,10 @@ Gemini가 429/5xx(특히 503 과부하)를 반환하면 짧게 재시도한 뒤 
 - 503/5xx/timeouts immediately switch to the next configured Gemini model.
 - 429 stops further model requests for that turn to avoid amplifying rate-limit pressure.
 - Existing thinking bubble and fallback text remain unchanged.
+
+
+## v52.7 Multiplayer AI + Mobile Render Fix
+- NPC thinking/reply events are broadcast to every player in the same multiplayer room.
+- NPC memory and growth remain personal to the user who spoke, so one player's memories do not overwrite another player's relationship.
+- Mobile world rendering now falls back to a real grass canvas while PNG assets are still loading instead of leaving the transparent canvas over a black mobile stage.
+- Mobile canvas/entity visibility is forced on as a final safety rule.

@@ -195,3 +195,11 @@ body.v45-map-screen .virtual-stick{display:block!important}
 body.scene-video-active #game{background:transparent!important}
 /* GPS / Google-map experiment is retired. */
 .gps-status-hud,.google-garden,.z46-map-brand,.z46-map-hint,.z48-map-actions,.z48-quick-chat,.z48-full-chat,.garden-cafe-return{display:none!important}
+
+
+/* v52.7 — mobile render safety. Keep the real canvas visible while assets are still loading. */
+@media (hover:none) and (pointer:coarse), (max-width:760px){
+  .game-stage{background:#72b84f!important;}
+  #game{display:block!important;visibility:visible!important;opacity:1!important;background:#72b84f!important;}
+  #entityLayer{display:block!important;visibility:visible!important;opacity:1!important;background:transparent!important;}
+}

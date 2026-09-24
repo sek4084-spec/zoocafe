@@ -186,6 +186,10 @@ function aiReply(n,text){
    aiSay(n,'잠깐 연결이 끊겼네. 다시 이야기해줄래?',3200);
  }
 }
+function aiReceiveThinking(m){
+ const n=aiFriends.find(v=>v.id===m.npcId);if(!n)return;
+ aiThinking(n);
+}
 function aiReceiveReply(m){
  const n=aiFriends.find(v=>v.id===m.npcId);if(!n)return;
  n.thinking=false;
@@ -235,7 +239,7 @@ function aiHearPlayer(text){
  n.target={x:p.x+(n.x<p.x?-68:68),y:p.y+22};n.state='approach';
  setTimeout(()=>{if(n.room===mode)aiReply(n,text)},120+Math.random()*180);
 }
-window.ZooCafeAI={friends:aiFriends,hear:aiHearPlayer,receiveReply:aiReceiveReply};
+window.ZooCafeAI={friends:aiFriends,hear:aiHearPlayer,receiveThinking:aiReceiveThinking,receiveReply:aiReceiveReply};
 
 renderChat();
 function drawRemote(r,camX=0,camY=0){const im=characterImage(r.animal||'lion',r.dir||'down',r.frame||2);if(!im)return;const x=r.x-camX,y=r.y-camY;shadow(x,y+18,22,7,.13);ctx.drawImage(im,Math.round(x-SPRITE_W/2),Math.round(y-SPRITE_H+22),SPRITE_W,SPRITE_H);drawNameTitle(r.nickname,r.title,x,y-SPRITE_H+8);const b=remoteBubbles.get(r.id);if(b&&performance.now()<b.until)bubbleText(b.text,x,y);}
@@ -425,7 +429,7 @@ function assetBridge(x,y){const path=ZA?.manifest.props?.bridge,im=path&&ZA.get(
 function drawWorld(){
   // Ground layer: replace grass PNGs later and the whole map updates automatically.
   const grasses=ZA?.manifest.terrain.grass;
-  if(grasses){for(let y=0;y<WORLD_H;y+=32)for(let x=0;x<WORLD_W;x+=32){const idx=Math.floor(hash2(x,y)*grasses.length);const im=ZA.pick(grasses,idx);if(im)ctx.drawImage(im,x,y,32,32)}}else R(0,0,WORLD_W,WORLD_H,'#72b84f');
+  if(ZA?.loaded&&grasses){for(let y=0;y<WORLD_H;y+=32)for(let x=0;x<WORLD_W;x+=32){const idx=Math.floor(hash2(x,y)*grasses.length);const im=ZA.pick(grasses,idx);if(im)ctx.drawImage(im,x,y,32,32)}}else R(0,0,WORLD_W,WORLD_H,'#72b84f');
   R(0,0,WORLD_W,44,'#396f3b');for(let x=0;x<WORLD_W;x+=36){px(x,34,24,14,'#4f8f43');px(x+12,27,20,14,'#5d9f48')}
   // Roads are now tile assets.
   const path=ZA?.pick(ZA.manifest.terrain.path);if(!drawAssetTiled(path,0,405,WORLD_W,126,32)){R(0,405,WORLD_W,126,'#caa568');pathTexture(0,405,WORLD_W,126,17)}
@@ -578,7 +582,7 @@ function drawV21RightForestPath(){
 function drawWorld(){
   // 1) meadow tiles across the full 2880x1800 world
   const grasses=ZA?.manifest.terrain.grass;
-  if(grasses){for(let y=0;y<WORLD_H;y+=32)for(let x=0;x<WORLD_W;x+=32){const im=ZA.pick(grasses,Math.floor(hash2(x,y)*grasses.length));if(im)ctx.drawImage(im,x,y,32,32)}}else R(0,0,WORLD_W,WORLD_H,'#72b84f');
+  if(ZA?.loaded&&grasses){for(let y=0;y<WORLD_H;y+=32)for(let x=0;x<WORLD_W;x+=32){const im=ZA.pick(grasses,Math.floor(hash2(x,y)*grasses.length));if(im)ctx.drawImage(im,x,y,32,32)}}else R(0,0,WORLD_W,WORLD_H,'#72b84f');
   // subtle forest horizon
   R(0,0,WORLD_W,55,'#396f3b');for(let x=0;x<WORLD_W;x+=40){px(x,42,27,16,'#4f8f43');px(x+15,34,22,17,'#5d9f48')}
   // 2) environmental zones
