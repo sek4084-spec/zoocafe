@@ -1495,9 +1495,7 @@ z541DrawNpcBubble=function(n){
     // object-position moves opposite to a grabbed picture, hence the negative values.
     stage.style.setProperty('--cafe-pan-x',`${-panX}px`);
     stage.style.setProperty('--cafe-pan-y',`${-panY}px`);
-    // Speech belongs to the painted NPCs, so it follows the grabbed scene; HUD does not.
-    stage.style.setProperty('--cafe-bubble-pan-x',`${panX}px`);
-    stage.style.setProperty('--cafe-bubble-pan-y',`${panY}px`);
+    // v54.15: NPC speech is HUD-anchored and deliberately does not move with camera drag.
   }
   function blocked(target){return !!target?.closest?.(interactive)}
   stage.addEventListener('pointerdown',e=>{

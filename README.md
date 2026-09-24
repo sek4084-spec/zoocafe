@@ -172,3 +172,9 @@ Gemini가 429/5xx(특히 503 과부하)를 반환하면 짧게 재시도한 뒤 
 - 멍사자/쥐무는토끼 이름표를 말풍선에 고정해 누가 말하는지 명확히 표시합니다.
 - 좌우 세로 메뉴를 상단 한 줄 5개 버튼(메뉴/채팅/친구/BGM/설정)으로 통합했습니다.
 - 드래그 카메라와 멀티플레이/AI/서버 기억 로직은 유지합니다.
+
+
+## v54.15 Fixed NPC Bubbles
+- Mobile NPC speech bubbles are fixed HUD elements and no longer follow drag-camera pan.
+- Mungsaja and Jwimuneun-tokki each have a separate fixed speech zone above their on-screen character area.
+- Existing top toolbar, chat, multiplayer, Gemini and PostgreSQL memory remain intact.

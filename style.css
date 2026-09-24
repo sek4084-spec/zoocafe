@@ -546,3 +546,41 @@ body.scene-video-active .game-shell.cafe-visual #game,
   .mobile-npc-bubble.mung b{background:#9c6338!important}
   .mobile-npc-bubble.rabbit b{background:#c97578!important}
 }
+
+/* ================================================================
+   ZOO:CAFE v54.15 — Fixed NPC Head Bubbles (mobile)
+   Speech is HUD-anchored: camera dragging moves only the cafe scene.
+   Each NPC owns one stable bubble zone above its visual head position.
+   ================================================================ */
+@media (hover:none) and (pointer:coarse), (max-width:700px){
+  .game-shell.cafe-visual .mobile-npc-speech{
+    transform:none!important;
+    position:fixed!important;
+    inset:0!important;
+    z-index:92!important;
+    pointer-events:none!important;
+  }
+  .game-shell.cafe-visual .mobile-npc-bubble{
+    top:43dvh!important;
+    bottom:auto!important;
+    width:auto!important;
+    max-width:38vw!important;
+    min-width:108px!important;
+    transform:none!important;
+  }
+  .game-shell.cafe-visual .mobile-npc-bubble.mung{
+    left:8vw!important;
+    right:auto!important;
+  }
+  .game-shell.cafe-visual .mobile-npc-bubble.rabbit{
+    right:8vw!important;
+    left:auto!important;
+    top:46dvh!important;
+  }
+  .game-shell.cafe-visual .mobile-npc-bubble.mung:after{left:35%!important;right:auto!important}
+  .game-shell.cafe-visual .mobile-npc-bubble.rabbit:after{right:35%!important;left:auto!important}
+  body.chatting .game-shell.cafe-visual .mobile-npc-bubble.mung,
+  body.chatting .game-shell.cafe-visual .mobile-npc-bubble.rabbit{
+    transform:none!important;
+  }
+}
