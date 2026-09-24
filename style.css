@@ -406,3 +406,61 @@ body.cafe-chat-history-open .game-shell.cafe-visual .chat-input-wrap{bottom:14px
   /* On phones NPC dialogue is read in the dock, not over faces. */
   .game-shell.cafe-visual #entityLayer{display:none!important}
 }
+
+
+/* v54.8 — user supplied cafe artwork replaces the Flow video background */
+.game-shell.cafe-visual .game-stage{
+  background-image:url('images/cafe-v54-8-new.png')!important;
+  background-repeat:no-repeat!important;
+  background-position:center center!important;
+  background-size:cover!important;
+}
+.game-shell.cafe-visual .scene-video,
+.game-shell.cafe-visual .scene-video-blur{display:none!important}
+body.scene-video-active .game-shell.cafe-visual #game,
+.game-shell.cafe-visual #game{background:transparent!important}
+
+/* Phone: preserve the entire uploaded artwork. The same image softly fills the unused vertical area. */
+@media (hover:none) and (pointer:coarse) and (orientation:portrait), (max-width:700px) and (orientation:portrait){
+  .game-shell.cafe-visual .game-stage{
+    background-color:#5b3922!important;
+    background-image:
+      linear-gradient(rgba(39,23,14,.22),rgba(39,23,14,.22)),
+      url('images/cafe-v54-8-new.png')!important;
+    background-size:cover,100% auto!important;
+    background-position:center center,center 7dvh!important;
+    background-repeat:no-repeat,no-repeat!important;
+  }
+  .game-shell.cafe-visual .game-stage:before{
+    content:'';position:absolute;inset:-4%;z-index:-1;pointer-events:none;
+    background:url('images/cafe-v54-8-new.png') center/cover no-repeat;
+    filter:blur(24px) brightness(.52) saturate(.9);transform:scale(1.08)
+  }
+}
+
+/* v54.10 — restore living cafe video using the newly supplied clip */
+.game-shell.cafe-visual .game-stage{
+  background:#2b1b12!important;
+  background-image:none!important;
+}
+.game-shell.cafe-visual .scene-video{
+  display:block!important;
+  position:absolute!important;
+  inset:0!important;
+  width:100%!important;
+  height:100%!important;
+  object-fit:cover!important;
+  object-position:center center!important;
+  z-index:0!important;
+}
+.game-shell.cafe-visual .scene-video-blur{display:none!important}
+.game-shell.cafe-visual #game,
+.game-shell.cafe-visual #entityLayer,
+.game-shell.cafe-visual .cafe-sidebar,
+.game-shell.cafe-visual .chat-input-wrap,
+.game-shell.cafe-visual .version-badge{z-index:3!important}
+@media (hover:none) and (pointer:coarse) and (orientation:portrait), (max-width:700px) and (orientation:portrait){
+  .game-shell.cafe-visual .game-stage{background:#2b1b12!important;background-image:none!important}
+  .game-shell.cafe-visual .game-stage:before{display:none!important}
+  .game-shell.cafe-visual .scene-video{object-fit:cover!important;object-position:center center!important}
+}

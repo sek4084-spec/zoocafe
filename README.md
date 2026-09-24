@@ -138,3 +138,15 @@ Gemini가 429/5xx(특히 503 과부하)를 반환하면 짧게 재시도한 뒤 
 - 원본 16:9 Flow 영상은 자르지 않고 중앙에 유지하고, 남는 세로 공간은 같은 영상을 블러 확장하여 검은 여백 대신 살아있는 배경처럼 보이게 합니다.
 - 채팅 기록에는 플레이어/NPC/멀티플레이 대화가 함께 표시되며 채팅 버튼을 누르면 하단 입력창이 열립니다.
 - PC 화면, WebSocket 멀티, Gemini/서버 기억/PostgreSQL 구조는 유지합니다.
+
+
+## v54.8 New Cafe Art
+- Replaced the cafe background with the user-supplied ZOO:CAFE illustration.
+- Existing mobile rails, chat composer, multiplayer, AI NPC, Gemini hybrid brain, and PostgreSQL memory remain intact.
+- On portrait phones the full artwork is kept visible with a soft same-image fill behind it.
+
+
+## v54.10 · New Living Cafe Video
+- Replaced the cafe background with the newly supplied MP4.
+- Restored the animated cafe video layer while preserving AI, multiplayer, sidebars, chat, Gemini and PostgreSQL systems.
+- Existing desktop NPC bubble positioning remains in place.

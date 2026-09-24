@@ -1415,3 +1415,32 @@ addEventListener('visibilitychange',()=>{if(!document.hidden)z546SyncBlurVideo()
     document.getElementById('cafeBarChat')?.addEventListener('pointerdown',()=>{if(mode==='cafe'&&isPhone()){activate();setTimeout(()=>chatInput.focus({preventScroll:true}),40)}},{capture:true});
   });
 })();
+
+/* ================================================================
+   ZOO:CAFE v54.9 — Desktop Bubble Reposition
+   New cafe artwork: keep speech away from Mungsaja/Rabbit faces.
+   Mobile layout remains on the existing responsive rules for now.
+   ================================================================ */
+const z549BubbleBase=z541DrawNpcBubble;
+z541DrawNpcBubble=function(n){
+  if(innerWidth<=700){z549BubbleBase(n);return;}
+  const text=n.thinking?'…':(n.bubble&&performance.now()<n.bubbleUntil?n.bubble:'');
+  if(!text)return;
+  // The new illustration places Mungsaja at the left counter and Rabbit at the center table.
+  // Put their text into the open scenery beside/above them instead of over their faces.
+  if(n.id==='ai-mung'){
+    // Mungsaja is behind the left counter. Keep the bubble above/right of him,
+    // in the menu-board/open-wall area so his face is never covered.
+    z542StoryBubble(text,390,185,!!n.thinking,n.id);
+    return;
+  }
+  if(n.id==='ai-rabbit'){
+    // Rabbit sits at the center table. Long replies live high in the open sky/window
+    // area, leaving both ears, eyes and laptop unobstructed.
+    z542StoryBubble(text,700,225,!!n.thinking,n.id);
+    return;
+  }
+  z549BubbleBase(n);
+};
+
+/* v54.11: desktop NPC bubble anchors tuned for the new living cafe video. */
