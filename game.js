@@ -162,11 +162,11 @@ function bubbleText(text,x,y,thinking=false){
    This behavior runs locally with no external AI/API key.
    ================================================================ */
 const aiFriends=[
- {id:'ai-mung',name:'AI 멍사자',animal:'lion',title:'카페지기',room:'cafe',
+ {id:'ai-mung',name:'멍사자',animal:'lion',title:'카페지기',room:'cafe',
   x:300,y:455,dir:'right',frame:2,t:0,moving:false,target:null,state:'wander',
   nextThink:0,bubble:'',bubbleUntil:0,lastTalk:0,thinking:false,
   lines:['커피 향이 좋다 ☕','오늘도 천천히 둘러봐야지.','누가 놀러 왔나?','잠깐 창가에 앉아볼까?']},
- {id:'ai-rabbit',name:'AI 쥐무는토끼',animal:'rabbit',title:'이야기 기록자',room:'cafe',
+ {id:'ai-rabbit',name:'쥐무는토끼',animal:'rabbit',title:'이야기 기록자',room:'cafe',
   x:720,y:455,dir:'left',frame:2,t:0,moving:false,target:null,state:'wander',
   nextThink:0,bubble:'',bubbleUntil:0,lastTalk:0,thinking:false,
   lines:['조용히 글을 좀 써볼까…','좋은 이야기는 기억해 둬야지.','커피 한 모금만…','오늘은 어떤 이야기가 생길까?']}
@@ -1356,3 +1356,30 @@ setInterval(()=>{
   const n=document.querySelectorAll('.player-list > *').length;
   document.querySelectorAll('.cafe-online-count').forEach(el=>el.textContent=String(n+1));
 },1000);
+
+
+/* ================================================================
+   ZOO:CAFE v54.5 — Full View + Conversation History
+   - Never crop the living cafe video: full 16:9 frame is always visible.
+   - Chat button opens the real conversation history and input together.
+   - NPC lines are already recorded by aiSay(); multiplayer lines stay shared.
+   ================================================================ */
+function z545OpenCafeChat(){
+  document.body.classList.add('cafe-chat-history-open');
+  try{openChat()}catch(e){if(chatInputWrap){chatInputWrap.hidden=false;chatInput?.focus();}}
+}
+function z545CloseCafeChatHistory(){document.body.classList.remove('cafe-chat-history-open')}
+const z545CloseChatBase=closeChat;
+closeChat=function(){z545CloseChatBase();z545CloseCafeChatHistory();};
+const z545OpenChatBase=openChat;
+openChat=function(){
+  z545OpenChatBase();
+  if(mode==='cafe')document.body.classList.add('cafe-chat-history-open');
+};
+addEventListener('DOMContentLoaded',()=>{
+  const b=document.getElementById('cafeBarChat');
+  if(b){
+    // Replace the v54.4 listener effect by stopping later duplicate clicks from toggling other UI.
+    b.addEventListener('click',e=>{e.preventDefault();e.stopImmediatePropagation();z545OpenCafeChat();},{capture:true});
+  }
+});

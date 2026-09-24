@@ -260,3 +260,55 @@ body.scene-video-active .game-shell.cafe-visual #game{background:transparent!imp
 .cafe-sidebar button.sound-off{opacity:.62}.cafe-online-count{position:absolute;right:-3px;top:-4px;min-width:18px;height:18px;padding:0 4px;border-radius:9px;background:#7b9b67;color:white;font:800 10px/18px Arial;font-style:normal}
 .game-shell.cafe-visual .cafe-hotspots{display:none!important}
 @media(max-width:700px){.cafe-sidebar{gap:5px;padding:6px 5px;border-radius:14px}.cafe-sidebar-left{left:6px}.cafe-sidebar-right{right:6px}.cafe-sidebar button{width:43px;min-height:43px;border-radius:11px}.cafe-sidebar button>span{font-size:17px}.cafe-sidebar button>small{font-size:8px}.cafe-online-count{transform:scale(.85)}}
+
+
+/* v54.5 — full-frame mobile composition + visible NPC/player conversation */
+.game-shell.cafe-visual .scene-video{
+  object-fit:contain!important;
+  object-position:center center!important;
+  background:#17110d!important;
+}
+.game-shell.cafe-visual .game-stage{
+  background:#17110d!important;
+}
+/* The chat history becomes a translucent in-world drawer only while chatting. */
+body.cafe-chat-history-open .game-shell.cafe-visual>.game-console>.chat-panel{
+  display:flex!important;
+  position:absolute!important;
+  z-index:70!important;
+  left:50%!important;
+  bottom:72px!important;
+  transform:translateX(-50%)!important;
+  width:min(720px,72%)!important;
+  height:min(210px,28vh)!important;
+  border:1px solid rgba(238,205,145,.52)!important;
+  border-radius:18px!important;
+  background:rgba(43,27,18,.80)!important;
+  box-shadow:0 12px 38px rgba(10,5,2,.34)!important;
+  backdrop-filter:blur(8px)!important;
+  overflow:hidden!important;
+}
+body.cafe-chat-history-open .game-shell.cafe-visual .chat-head{background:rgba(65,42,27,.72);border-color:rgba(238,205,145,.20)}
+body.cafe-chat-history-open .game-shell.cafe-visual .chat-log{padding:10px 14px}
+body.cafe-chat-history-open .game-shell.cafe-visual .chat-row{font-family:"Noto Sans KR","Malgun Gothic",sans-serif;font-size:12px}
+body.cafe-chat-history-open .game-shell.cafe-visual .chat-row .who{color:#f0c985}
+body.cafe-chat-history-open .game-shell.cafe-visual .chat-row .msg{color:#fff5df}
+body.cafe-chat-history-open .game-shell.cafe-visual .chat-input-wrap{bottom:14px!important;width:min(720px,72%)!important}
+
+@media (hover:none) and (pointer:coarse), (max-width:760px){
+  /* Previous versions used cover and cropped the 16:9 movie on portrait phones. */
+  .game-shell.cafe-visual .scene-video{object-fit:contain!important;object-position:center center!important}
+  .game-shell.cafe-visual .game-stage{background:#17110d!important}
+  .game-shell.cafe-visual .cafe-sidebar{top:50%;transform:translateY(-50%)}
+  body.cafe-chat-history-open .game-shell.cafe-visual>.game-console>.chat-panel{
+    left:50%!important;bottom:72px!important;width:84%!important;height:min(190px,25vh)!important;
+  }
+  body.cafe-chat-history-open .game-shell.cafe-visual .chat-input-wrap{width:84%!important;bottom:12px!important}
+}
+@media (hover:none) and (pointer:coarse) and (orientation:portrait){
+  /* Keep the complete landscape artwork visible: this deliberately creates breathing room above/below instead of cropping faces/scenery. */
+  .game-shell.cafe-visual .scene-video{width:100vw!important;height:100dvh!important;object-fit:contain!important}
+  body.cafe-chat-history-open .game-shell.cafe-visual .scene-video{transform:scale(.96);transform-origin:center center}
+  .game-shell.cafe-visual .cafe-sidebar-left{left:max(6px,env(safe-area-inset-left))}
+  .game-shell.cafe-visual .cafe-sidebar-right{right:max(6px,env(safe-area-inset-right))}
+}

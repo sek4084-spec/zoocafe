@@ -123,3 +123,11 @@ Gemini가 429/5xx(특히 503 과부하)를 반환하면 짧게 재시도한 뒤 
 - Clickable left/right cafe sidebars added.
 - Cafe BGM now plays together with the uploaded video ambience after browser audio unlock.
 - Existing WebSocket multiplayer, Gemini hybrid brain and PostgreSQL memory are unchanged.
+
+
+## v54.5 Full View Social Cafe
+- Mobile cafe video uses contain instead of cover so the full 16:9 Flow scene is visible without cropping.
+- Chat mode slightly zooms the scene out on portrait phones.
+- Cafe Chat opens the real conversation history plus input; player, Mungsaja, rabbit and multiplayer messages share the same log.
+- NPC display names are now 멍사자 / 쥐무는토끼 (no AI prefix).
+- Existing multiplayer, Gemini hybrid brain, Shared Ears and PostgreSQL persistence are preserved.
