@@ -1555,3 +1555,32 @@ z541DrawNpcBubble=function(n){
   if(n.id==='ai-rabbit'){z5414NamedBubble(text,700,225,!!n.thinking,n.id);return}
   z5414PreviousNpcBubble(n);
 };
+
+// v55.1 shared life events: all connected users observe the same routine and NPC exchanges.
+// Do not use Gemini for passive activities; existing chat requests keep their own AI pipeline.
+(()=>{
+ let life=null;
+ const names={'ai-mung':'멍사자','ai-rabbit':'쥐무는토끼'};
+ const safe=s=>String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+ function apply(data){if(data&&typeof data==='object')life=data;}
+ function event(message){
+  apply(message.life);
+  const e=message.event;if(!e)return;
+  // Only spoken lines go into the conversation log. Routine actions remain in the activity journal.
+  if(e.kind==='conversation'||e.kind==='visitor'){
+   if(typeof addChatMessage==='function')addChatMessage(e.actor,e.text);
+   const npc=aiFriends.find(n=>n.id===e.id);
+   if(npc){npc.thinking=false;npc.bubble=e.text;npc.bubbleUntil=performance.now()+5500;}
+  }
+ }
+ function openLog(){
+  const layer=document.getElementById('modalLayer'),box=document.getElementById('modalContent');
+  if(!layer||!box)return;
+  const npcs=life?.npcs||{},timeline=(life?.timeline||[]).slice().reverse();
+  const stats=Object.entries(npcs).map(([id,n])=>`<div style="padding:9px;margin:6px 0;background:#6d4835;border-radius:10px"><b>${safe(names[id]||id)}</b> · Lv.${Number(n.level)||1}<br>지금: ${safe(n.action)} · 기분 ${Number(n.mood)||0} · 에너지 ${Number(n.energy)||0}</div>`).join('');
+  const rows=timeline.map(e=>`<div style="padding:7px 0;border-bottom:1px solid #8b6a50"><small>${new Date(e.at).toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'})}</small> <b>${safe(e.actor)}</b> · ${safe(e.action)}<br>${safe(e.text)}</div>`).join('');
+  box.innerHTML=`<div style="max-height:65dvh;overflow:auto;padding:12px;color:#fff0db"><h2>☕ 오늘의 카페 생활</h2><p>NPC들은 내가 말하지 않아도 각자의 하루를 보내고 있어.</p>${stats}<h3>생활 기록</h3>${rows||'아직 기록이 없어. 조금 기다려 줘!'}</div>`;
+  layer.hidden=false;
+ }
+ window.ZooCafeLife={apply,event,openLog,get:()=>life};
+})();

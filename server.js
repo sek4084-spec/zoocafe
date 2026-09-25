@@ -18,7 +18,7 @@ async function initNpcDb(){
   npcPool=new Pool({connectionString:dbUrl,ssl:process.env.NODE_ENV==='production'?{rejectUnauthorized:false}:undefined});
   await npcPool.query(`CREATE TABLE IF NOT EXISTS zoocafe_npc_state (id TEXT PRIMARY KEY, payload JSONB NOT NULL, updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW())`);
   const r=await npcPool.query(`SELECT id,payload FROM zoocafe_npc_state WHERE id IN ('memory','growth','knowledge')`);
-  for(const row of r.rows){if(row.id==='memory'&&row.payload)npcMemory=row.payload;if(row.id==='growth'&&row.payload)npcGrowth=row.payload;if(row.id==='knowledge'&&row.payload)npcKnowledge=row.payload}
+  for(const row of r.rows){if(row.id==='memory'&&row.payload)npcMemory=row.payload;if(row.id==='growth'&&row.payload)npcGrowth=row.payload;if(row.id==='knowledge'&&row.payload)npcKnowledge=row.payload;if(row.id==='life'&&row.payload)restoreNpcLife(row.payload)}
   console.log('NPC persistent memory: PostgreSQL connected');return true;
  }catch(e){console.warn('NPC PostgreSQL unavailable; using local JSON fallback:',e.message);npcPool=null;return false}
 }
@@ -305,6 +305,93 @@ function syncRoom(mode){
   for(const [peerWs] of room)wsSend(peerWs,{type:'roster',players});
 }
 
+// v55: shared cafe atmosphere + random visitor system.
+// One server state is shared by every player so multiplayer users see the same cafe event.
+const CAFE_EVENT_MS=Math.max(5*60*1000,Number(process.env.CAFE_EVENT_MS)||45*60*1000);
+const CAFE_EVENTS=[
+ {id:'normal',label:'평범한 오후',weight:70,visitor:null},
+ {id:'rain',label:'비 오는 카페',weight:15,visitor:{id:'visitor-cat',name:'고양이 여행자',icon:'🐱',line:'비를 피하다가 들어왔어. 여기 커피 향이 좋네.'}},
+ {id:'sunset',label:'노을이 머무는 시간',weight:8,visitor:{id:'visitor-fox',name:'여우 작가',icon:'🦊',line:'조용히 글을 쓰러 왔어. 오늘 풍경은 오래 기억하고 싶네.'}},
+ {id:'special',label:'뜻밖의 손님',weight:5,visitor:{id:'visitor-bear',name:'곰 우체부',icon:'🐻',line:'멀리서 편지를 전하러 왔어. 잠깐 쉬었다 갈게.'}},
+ {id:'rare',label:'아주 특별한 밤',weight:2,visitor:{id:'visitor-owl',name:'부엉이 기록자',icon:'🦉',line:'이 시간의 이야기는 내가 기록해 둘게.'}}
+];
+function pickCafeEvent(){
+ const total=CAFE_EVENTS.reduce((n,e)=>n+e.weight,0);let r=Math.random()*total;
+ for(const e of CAFE_EVENTS){r-=e.weight;if(r<0)return e}return CAFE_EVENTS[0];
+}
+let cafeEvent={...pickCafeEvent(),startedAt:Date.now(),endsAt:Date.now()+CAFE_EVENT_MS};
+function publicCafeEvent(){return {id:cafeEvent.id,label:cafeEvent.label,visitor:cafeEvent.visitor,startedAt:cafeEvent.startedAt,endsAt:cafeEvent.endsAt}}
+function rollCafeEvent(){const e=pickCafeEvent(),now=Date.now();cafeEvent={...e,startedAt:now,endsAt:now+CAFE_EVENT_MS};broadcastRoom('cafe',{type:'cafe_event',event:publicCafeEvent()});}
+setInterval(rollCafeEvent,CAFE_EVENT_MS).unref?.();
+
+// v55.1 NPC Life Engine: one shared simulation for every cafe visitor.
+// Routine/actions run without Gemini. Player conversations still use the existing AI bridge.
+const NPC_LIFE_FILE=path.join(__dirname,'data','npc-life.json');
+const LIFE_TICK_MS=Math.max(12000,Number(process.env.NPC_LIFE_TICK_MS)||28000);
+const LIFE_ROUTINES={
+ 'ai-mung':[
+  {action:'커피 내리기',mood:3,energy:-2,line:'오늘은 어떤 커피를 내려볼까?'},
+  {action:'카페 정리',mood:1,energy:-3,line:'천천히 정리하면 금방 끝나겠지.'},
+  {action:'창밖 구경',mood:4,energy:2,line:'밖에 풍경이 참 좋네.'},
+  {action:'잠깐 쉬기',mood:3,energy:8,line:'잠깐 쉬어 가는 것도 좋지.'},
+  {action:'손님 맞이',mood:3,energy:-1,line:'어서 와, 편하게 쉬다 가.'}
+ ],
+ 'ai-rabbit':[
+  {action:'원고 쓰기',mood:-1,energy:-5,line:'이번 장면만 끝내고 쉬어야지…'},
+  {action:'자료 정리',mood:1,energy:-3,line:'이 이야기도 기록해 둬야겠어.'},
+  {action:'커피 마시기',mood:4,energy:7,line:'커피 한 모금… 이제 좀 살겠다.'},
+  {action:'창밖 관찰',mood:3,energy:2,line:'저 풍경은 다음 이야기에 써먹을 수 있겠어.'},
+  {action:'꾸벅꾸벅 졸기',mood:2,energy:10,line:'딱 5분만 눈 감을게…'}
+ ]
+};
+const clampLife=n=>Math.max(0,Math.min(100,n));
+const defaultLife=()=>({
+ 'ai-mung':{action:'커피 내리기',mood:75,energy:80,experience:0,level:1,relationships:{'ai-rabbit':12},lastActionAt:Date.now()},
+ 'ai-rabbit':{action:'원고 쓰기',mood:50,energy:42,experience:0,level:1,relationships:{'ai-mung':12},lastActionAt:Date.now()}
+});
+let npcLife=defaultLife(),lifeTimeline=[];
+function restoreNpcLife(data){if(!data||typeof data!=='object')return;for(const id of Object.keys(LIFE_ROUTINES))if(data.npcs?.[id])npcLife[id]={...npcLife[id],...data.npcs[id]};if(Array.isArray(data.timeline))lifeTimeline=data.timeline.slice(-20)}
+try{restoreNpcLife(JSON.parse(fs.readFileSync(NPC_LIFE_FILE,'utf8')))}catch{}
+function publicLife(){return {npcs:npcLife,timeline:lifeTimeline.slice(-12),at:Date.now()}}
+function saveLife(){const data={npcs:npcLife,timeline:lifeTimeline.slice(-20)};try{fs.mkdirSync(path.dirname(NPC_LIFE_FILE),{recursive:true});fs.writeFileSync(NPC_LIFE_FILE,JSON.stringify(data,null,2))}catch(e){console.warn('NPC life save:',e.message)}persistNpcDb('life',data)}
+function lifeEvent(id,action,text,kind='routine'){
+ const event={id,actor:id==='ai-mung'?'멍사자':id==='ai-rabbit'?'쥐무는토끼':cafeEvent.visitor?.name||'방문 손님',action,text,kind,at:Date.now()};
+ lifeTimeline.push(event);lifeTimeline=lifeTimeline.slice(-20);
+ broadcastRoom('cafe',{type:'npc_life_event',event,life:publicLife()});
+ return event;
+}
+let lifeTurn=0;
+function tickNpcLife(){
+ lifeTurn++;
+ const id=lifeTurn%2?'ai-mung':'ai-rabbit',state=npcLife[id],options=LIFE_ROUTINES[id];
+ // Low energy leads to rest, not endless random actions.
+ const selected=state.energy<24?options.find(v=>/쉬기|졸기/.test(v.action)):options[Math.floor(Math.random()*options.length)];
+ state.action=selected.action;state.mood=clampLife(state.mood+selected.mood);state.energy=clampLife(state.energy+selected.energy);
+ state.experience++;state.level=1+Math.floor(state.experience/20);state.lastActionAt=Date.now();
+ lifeEvent(id,state.action,selected.line);
+ // Every fourth turn: an NPC-to-NPC exchange, without using the Gemini quota.
+ if(lifeTurn%4===0){
+  const a=npcLife['ai-mung'],b=npcLife['ai-rabbit'];
+  a.relationships['ai-rabbit']=(a.relationships['ai-rabbit']||0)+1;
+  b.relationships['ai-mung']=(b.relationships['ai-mung']||0)+1;
+  const exchanges=[
+   ['멍사자','토끼야, 커피 한 잔 더 줄까?','쥐무는토끼','…응. 오늘은 진하게 부탁해.'],
+   ['쥐무는토끼','오늘 손님이 많네…','멍사자','그러게. 그래도 북적이니까 좋다.'],
+   ['멍사자','글은 잘 써지고 있어?','쥐무는토끼','한 문장씩은… 나아지고 있어.']
+  ];
+  const ex=exchanges[Math.floor(Math.random()*exchanges.length)];
+  lifeEvent(ex[0]==='멍사자'?'ai-mung':'ai-rabbit','서로 대화',ex[1],'conversation');
+  lifeEvent(ex[2]==='멍사자'?'ai-mung':'ai-rabbit','서로 대화',ex[3],'conversation');
+ }
+ if(cafeEvent.visitor&&lifeTurn%5===0){
+  const v=cafeEvent.visitor;
+  lifeEvent(v.id,'카페 방문',v.line,'visitor');
+ }
+ saveLife();
+}
+setInterval(tickNpcLife,LIFE_TICK_MS).unref?.();
+
+
 
 wss.on('connection',ws=>{
   const c={authed:false,user:null,mode:'world',x:1430,y:980,dir:'down',frame:2,moving:false,geo:null}; clients.set(ws,c);
@@ -317,6 +404,7 @@ wss.on('connection',ws=>{
     if(m.type==='state'){
       const old=c.mode, next=validModes.has(m.mode)?m.mode:c.mode;c.mode=next;
       if(old!=='cafe'&&next==='cafe'){
+        wsSend(ws,{type:'cafe_event',event:publicCafeEvent()});wsSend(ws,{type:'npc_life_state',life:publicLife()});
         for(const w of returningNpcWelcomes(c.user))wsSend(ws,{type:'npc_welcome',...w,personal:true,at:Date.now()});
       }
       const maxX=next==='world'?2880:960,maxY=next==='world'?1800:540;

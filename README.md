@@ -178,3 +178,17 @@ Gemini가 429/5xx(특히 503 과부하)를 반환하면 짧게 재시도한 뒤 
 - Mobile NPC speech bubbles are fixed HUD elements and no longer follow drag-camera pan.
 - Mungsaja and Jwimuneun-tokki each have a separate fixed speech zone above their on-screen character area.
 - Existing top toolbar, chat, multiplayer, Gemini and PostgreSQL memory remain intact.
+
+
+## v55.0 Random Visitors
+- Server-shared cafe atmosphere event rotates every 45 minutes (configurable with `CAFE_EVENT_MS`).
+- Weighted states: normal 70%, rain 15%, sunset 8%, special visitor 5%, rare 2%.
+- All multiplayer users in the cafe receive the same event.
+- Visitor card can be tapped to see the visitor's short introduction.
+- This is the foundation for persistent AI visitor personalities and autonomous NPC schedules.
+
+
+## v55.2 통합 패치 (사용자 업로드 v55.0 기준)
+- v55.1 NPC Life Engine: 공통 서버 생활 이벤트/성장/대화, 상태 기록 및 생활일지 버튼.
+- v55.2 모바일 말풍선: NPC별 독립 HUD 고정 좌표. 화면 드래그 시 위치는 이동하지 않습니다. 영상 속 머리를 자동 추적하지는 않습니다.
+- 기존 업로드 파일의 미디어/기타 파일을 그대로 유지했습니다.

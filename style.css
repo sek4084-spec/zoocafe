@@ -584,3 +584,51 @@ body.scene-video-active .game-shell.cafe-visual #game,
     transform:none!important;
   }
 }
+
+
+/* v55 Random Visitor System */
+.cafe-event-chip{position:absolute;top:74px;left:50%;transform:translateX(-50%);z-index:88;display:flex;align-items:center;gap:7px;padding:7px 12px;border:1px solid rgba(255,221,163,.55);border-radius:999px;background:rgba(54,31,18,.72);color:#fff4df;backdrop-filter:blur(8px);font-size:12px;pointer-events:none}.cafe-event-chip[hidden]{display:none}
+.cafe-visitor{position:absolute;z-index:87;right:18%;bottom:23%;display:flex;align-items:center;gap:8px;border:1px solid rgba(255,225,175,.65);border-radius:18px;padding:8px 11px;background:rgba(62,37,22,.78);color:#fff3dd;box-shadow:0 7px 20px rgba(0,0,0,.25);backdrop-filter:blur(7px);cursor:pointer}.cafe-visitor[hidden]{display:none}.cafe-visitor .visitor-icon{font-size:28px}.cafe-visitor b,.cafe-visitor small{display:block}.cafe-visitor small{opacity:.72;font-size:9px;margin-top:2px}
+.game-shell[data-cafe-event="rain"] .game-stage:after{content:"";position:absolute;inset:0;z-index:5;pointer-events:none;background:linear-gradient(110deg,rgba(78,103,119,.16),rgba(36,57,72,.10));}
+.game-shell[data-cafe-event="sunset"] .game-stage:after{content:"";position:absolute;inset:0;z-index:5;pointer-events:none;background:rgba(255,147,76,.08)}
+.game-shell[data-cafe-event="rare"] .game-stage:after{content:"";position:absolute;inset:0;z-index:5;pointer-events:none;background:rgba(37,31,74,.13)}
+@media(max-width:700px),(hover:none) and (pointer:coarse){.cafe-event-chip{position:fixed;top:max(62px,calc(env(safe-area-inset-top) + 62px));font-size:10px;padding:5px 9px}.cafe-visitor{position:fixed;right:12px;bottom:31dvh;padding:6px 8px;max-width:130px}.cafe-visitor .visitor-icon{font-size:23px}.cafe-visitor b{font-size:10px}.cafe-visitor small{font-size:8px}}
+
+/* v55.1 clickable shared-life journal */
+.cafe-event-chip{cursor:pointer;font:inherit}
+
+/* v55.2 — fixed, separated speech zones tuned to the portrait cafe artwork.
+   These are HUD anchors, NOT children of the panning video. Tune the four
+   variables below for future artwork if NPC positions change. */
+@media (max-width:700px), (hover:none) and (pointer:coarse){
+  .game-shell.cafe-visual{
+    --mung-speech-x:3vw; --mung-speech-y:33dvh;
+    --rabbit-speech-x:3vw; --rabbit-speech-y:49dvh;
+  }
+  .game-shell.cafe-visual #mobileNpcSpeech{
+    position:fixed!important;inset:0!important;transform:none!important;
+    z-index:92!important;pointer-events:none!important;
+  }
+  .game-shell.cafe-visual #mobileNpcSpeech .mobile-npc-bubble{
+    position:fixed!important;bottom:auto!important;right:auto!important;
+    transform:none!important;max-width:min(42vw,210px)!important;
+    min-width:0!important;box-sizing:border-box!important;
+    font-size:clamp(10px,2.8vw,13px)!important;line-height:1.4!important;
+    padding:9px 11px!important;
+  }
+  .game-shell.cafe-visual #mobileMungBubble{
+    left:var(--mung-speech-x)!important;top:var(--mung-speech-y)!important;
+  }
+  .game-shell.cafe-visual #mobileRabbitBubble{
+    left:auto!important;right:var(--rabbit-speech-x)!important;
+    top:var(--rabbit-speech-y)!important;
+  }
+  .game-shell.cafe-visual #mobileMungBubble:after{left:28%!important;right:auto!important}
+  .game-shell.cafe-visual #mobileRabbitBubble:after{right:25%!important;left:auto!important}
+  body.chatting .game-shell.cafe-visual #mobileMungBubble{top:var(--mung-speech-y)!important;transform:none!important}
+  body.chatting .game-shell.cafe-visual #mobileRabbitBubble{top:var(--rabbit-speech-y)!important;transform:none!important}
+  .game-shell.cafe-visual #mobileNpcSpeech .mobile-npc-bubble[hidden]{display:none!important}
+}
+
+/* merged patch: enable life journal tap */
+.game-shell.cafe-visual .cafe-event-chip{pointer-events:auto!important;cursor:pointer!important}
