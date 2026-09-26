@@ -7,9 +7,9 @@
  const shell=document.querySelector('.game-shell');
  const clips=['video/cafe-living-v54.mp4','video/cafe-scene-1.mp4','video/cafe-scene-2.mp4','video/cafe-scene-3.mp4'];
  if(!video||!shell)return;
- let inside=false,selected=null,serverChosen=false;
+ let inside=false,selected=null,serverChosen=false,serverOutdated=false;
  const inCafe=()=>shell.classList.contains('cafe-visual');
- function showStatus(message){if(badge)badge.textContent=message}
+ function showStatus(message){if(badge)badge.textContent=serverOutdated?'ZOO:CAFE · 이전 서버 실행 중 · 서버 재시작 필요':message}
  function setSource(element,src){
   if(!element||element.getAttribute('src')===src)return;
   element.pause();
@@ -36,8 +36,13 @@
   apply(Math.floor(Math.random()*clips.length),false);
  }
  function onLeave(){inside=false;serverChosen=false}
+ function setServerVersion(version){
+  serverOutdated=version!=='55.5.1';
+  if(serverOutdated)showStatus('이전 서버 실행 중');
+  else showStatus(inside?`ZOO:CAFE · 장면 ${selected??0} / 0–3${serverChosen?'':' · 서버 장면 대기'}`:'ZOO:CAFE · 서버 연결됨 · 카페 입장 시 추첨');
+ }
  video.addEventListener('error',()=>showStatus(`장면 ${selected??'?'} 영상 로드 실패 · video 폴더 확인`));
- window.ZooCafeScene={apply,onEnter,onLeave,current:()=>selected};
+ window.ZooCafeScene={apply,onEnter,onLeave,setServerVersion,current:()=>selected};
  showStatus('ZOO:CAFE · 영상 선택 준비 완료');
  setInterval(()=>{if(inCafe())onEnter();else if(inside)onLeave()},100);
 })();

@@ -632,3 +632,20 @@ body.chatting .game-shell.cafe-visual .cafe-dialogue-dock{display:none!important
 .cafe-dialogue-mini.rabbit{background-size:267px 178px;background-position:-107px -103px}
 .cafe-dialogue-mini.player:before{font-size:12px}
 @media(max-width:700px),(hover:none) and (pointer:coarse){.cafe-dialogue-avatar{width:46px;height:46px}.cafe-dialogue-avatar.mung{background-size:475px 317px;background-position:-61px -114px}.cafe-dialogue-avatar.rabbit{background-size:475px 317px;background-position:-189px -182px}.cafe-dialogue-avatar.player:before{font-size:18px}.cafe-dialogue-current{gap:10px}}
+
+/* v55.5.2: show the speaker portrait and current line on idle phones.
+   The chat history and composer appear only while the user is entering text. */
+@media (max-width:700px), (hover:none) and (pointer:coarse){
+ body:not(.chatting) .game-shell.cafe-visual>.game-console>.chat-panel,
+ body:not(.chatting).cafe-chat-history-open .game-shell.cafe-visual>.game-console>.chat-panel{display:none!important}
+ body:not(.chatting) .game-shell.cafe-visual .chat-input-wrap,
+ body:not(.chatting) .game-shell.cafe-visual .chat-input-wrap[hidden],
+ body:not(.chatting).cafe-chat-history-open .game-shell.cafe-visual .chat-input-wrap{display:none!important}
+ body:not(.chatting) .game-shell.cafe-visual .cafe-dialogue-dock{display:block!important}
+ body.chatting .game-shell.cafe-visual>.game-console>.chat-panel{display:flex!important}
+ body.chatting .game-shell.cafe-visual .cafe-dialogue-dock{display:none!important}
+ .game-shell.cafe-visual .cafe-dialogue-dock{z-index:95!important;max-height:min(40dvh,250px);overflow-y:auto;padding-bottom:48px}
+ .game-shell.cafe-visual .cafe-dialogue-current{align-items:center}
+ .game-shell.cafe-visual .cafe-dialogue-copy{min-width:0}
+ .game-shell.cafe-visual .cafe-dialogue-head{flex-wrap:wrap;gap:3px 10px}
+}

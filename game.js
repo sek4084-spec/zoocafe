@@ -1394,6 +1394,10 @@ addEventListener('visibilitychange',()=>{if(!document.hidden)z546SyncBlurVideo()
     if(!chatInput||!chatInputWrap)return;
     chatInput.addEventListener('pointerdown',()=>{activate();setTimeout(()=>chatInput.focus({preventScroll:true}),0)});
     chatInput.addEventListener('click',()=>{activate();chatInput.focus({preventScroll:true})});
+    chatInput.addEventListener('blur',()=>{
+      if(mode!=='cafe'||!isPhone())return;
+      setTimeout(()=>{if(document.activeElement!==chatInput&&chatActive)closeChat()},120);
+    });
     const send=chatInputWrap.querySelector('.chat-send-hint');
     send?.addEventListener('pointerdown',e=>{if(!isPhone()||mode!=='cafe')return;e.preventDefault();e.stopPropagation();activate();if(chatInput.value.trim())sendChat();else chatInput.focus({preventScroll:true})});
     document.getElementById('cafeBarChat')?.addEventListener('pointerdown',()=>{if(mode==='cafe'&&isPhone()){activate();setTimeout(()=>chatInput.focus({preventScroll:true}),40)}},{capture:true});

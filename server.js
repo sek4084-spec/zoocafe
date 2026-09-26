@@ -242,7 +242,7 @@ if (!fs.existsSync(USERS_FILE)) fs.writeFileSync(USERS_FILE, '[]');
 
 app.use(express.json({limit:'32kb'}));
 app.use(express.static(__dirname, {extensions:['html']}));
-app.get('/api/health',(req,res)=>res.json({ok:true,service:'zoocafe-online',gemini:{sleeping:geminiSleeping(),sleepUntil:geminiSleepUntil||null,reason:geminiSleepReason||null},npcDb:!!npcPool}));
+app.get('/api/health',(req,res)=>res.json({ok:true,service:'zoocafe-online',version:'55.5.1',gemini:{sleeping:geminiSleeping(),sleepUntil:geminiSleepUntil||null,reason:geminiSleepReason||null},npcDb:!!npcPool}));
 app.get('/api/maps-config',(req,res)=>{const key=process.env.GOOGLE_MAPS_API_KEY||'';res.set('Cache-Control','no-store');res.json({key,enabled:!!key});});
 
 const sessions = new Map();
@@ -409,7 +409,7 @@ async function tickNpcLife(){
   npcLife.turn++;npcLife.topic=topic;
   for(let i=0;i<lines.length;i++){
    const [npcId,text]=lines[i],a=npcLife.actors[npcId];
-   a.lastAction=i===0?'이야기 꺼내기':'서로 대화';a.xp++;a.level=1+Math.floor(a.xp/20);
+   a.lastAction=i===0?'이야기 꺼내기':'서로 대화';a.xp++;a.level=Math.min(20,1+Math.floor(a.xp/20));
    a.energy=Math.max(20,Math.min(100,a.energy+(npcId==='ai-rabbit'?-1:1)));
    a.mood=Math.min(100,a.mood+1);a.relationship=Math.min(100,a.relationship+1);
    const event={npcId,text,topic,chapter:npcLife.story.stage+1,action:a.lastAction,at:Date.now()+i*4300,turn:npcLife.turn,step:i};
@@ -423,7 +423,7 @@ async function tickNpcLife(){
    if(!npcLife.story.memories.includes(chapter.memory))npcLife.story.memories.push(chapter.memory);
    npcLife.story.memories=npcLife.story.memories.slice(-16);
    npcLife.story.arc++;npcLife.story.stage=0;
-   for(const a of Object.values(npcLife.actors)){a.xp+=2;a.level=1+Math.floor(a.xp/20);a.relationship=Math.min(100,a.relationship+2)}
+   for(const a of Object.values(npcLife.actors)){a.xp+=2;a.level=Math.min(20,1+Math.floor(a.xp/20));a.relationship=Math.min(100,a.relationship+2)}
   }
   saveNpcLife();
  }finally{npcLifeBusy=false}
@@ -438,7 +438,7 @@ wss.on('connection',ws=>{
     if(!c.authed){
       if(m.type!=='auth'||typeof m.token!=='string')return ws.close(1008,'auth required');
       const userId=sessions.get(m.token), user=loadUsers().find(u=>u.id===userId); if(!user)return ws.close(1008,'invalid session');
-      c.authed=true;c.user=safeUser(user);wsSend(ws,{type:'ready',user:c.user});syncRoom(c.mode);return;
+      c.authed=true;c.user=safeUser(user);wsSend(ws,{type:'ready',user:c.user,serverVersion:'55.5.1'});syncRoom(c.mode);return;
     }
     if(m.type==='state'){
       const old=c.mode, next=validModes.has(m.mode)?m.mode:c.mode;
