@@ -183,14 +183,14 @@ function aiReply(n,text){
    aiThinking(n);
    window.ZooCafeNet.sendNpcChat(n.id,text);
  }else{
-   aiSay(n,'잠깐 연결이 끊겼네. 다시 이야기해줄래?',3200);
+   showCafeDialogue('안내','서버 연결 후 대화할 수 있어요.');
  }
 }
 function aiReceiveThinking(m){
  const n=aiFriends.find(v=>v.id===m.npcId);if(!n)return;
  aiThinking(n);
 }
-function aiReceiveWelcome(m){
+function aiReceiveWelcome(m){return;
  const n=aiFriends.find(v=>v.id===m.npcId);if(!n)return;
  n.thinking=false;const p=aiPlayer();n.target={x:p.x+(n.x<p.x?-68:68),y:p.y+22};n.state='approach';
  aiSay(n,String(m.text||'').trim()||'다시 왔네!',7600);
@@ -207,26 +207,8 @@ function aiPickTarget(n){
  n.target={x:bounds.minX+Math.random()*(bounds.maxX-bounds.minX),y:bounds.minY+Math.random()*(bounds.maxY-bounds.minY)};
  n.state='wander';n.nextThink=performance.now()+3500+Math.random()*5000;
 }
-function aiStep(n){
- if(n.room!==mode)return;
- const now=performance.now(),p=aiPlayer(),dist=Math.hypot(p.x-n.x,p.y-n.y);
- if(dist<230 && now-n.lastTalk>14000){
-   n.state='approach';n.target={x:p.x+(n.x<p.x?-72:72),y:p.y+25};
-   if(dist<115){n.target=null;n.state='social';aiSay(n,n.animal==='lion'?'어, 왔구나! 여기서 뭐 하고 있었어?':'안녕… 잠깐 이야기할래?');n.nextThink=now+6500;}
- } else if(now>n.nextThink && n.state!=='approach'){
-   if(Math.random()<.28){n.state='idle';n.target=null;n.nextThink=now+2500+Math.random()*3500;if(Math.random()<.35)aiSay(n,n.lines[Math.floor(Math.random()*n.lines.length)],3500)}
-   else aiPickTarget(n);
- }
- if(n.target){
-   const dx=n.target.x-n.x,dy=n.target.y-n.y,d=Math.hypot(dx,dy);
-   if(d<8){n.target=null;n.moving=false;n.state='idle';n.nextThink=now+1800+Math.random()*3500}
-   else{
-     const sp=n.state==='approach'?1.25:.72;n.x+=dx/d*sp;n.y+=dy/d*sp;n.moving=true;
-     if(Math.abs(dx)>Math.abs(dy))n.dir=dx<0?'left':'right';else n.dir=dy<0?'up':'down';
-     animate(n,true);
-   }
- }else animate(n,false);
-}
+function aiStep(n){/* v55.2: no ambient greetings or random fixed lines. */}
+
 function updateAiFriends(){for(const n of aiFriends)aiStep(n)}
 function drawAiFriends(camX=0,camY=0){
  for(const n of aiFriends){if(n.room!==mode)continue;
@@ -1243,6 +1225,7 @@ const z543CafeVideo=document.getElementById('sceneVideo');
 let z543VideoSoundUnlocked=false;
 function z543VideoOn(){
   if(!z543CafeVideo)return;
+  window.ZooCafeScene?.onEnter?.();
   z543CafeVideo.hidden=false;
   document.body.classList.add('scene-video-active');
   // Start muted so every browser can autoplay. First user gesture unlocks audio.
@@ -1252,6 +1235,7 @@ function z543VideoOn(){
 }
 function z543VideoOff(){
   if(!z543CafeVideo)return;
+  window.ZooCafeScene?.onLeave?.();
   z543CafeVideo.pause();
   z543CafeVideo.hidden=true;
   document.body.classList.remove('scene-video-active');
@@ -1556,31 +1540,77 @@ z541DrawNpcBubble=function(n){
   z5414PreviousNpcBubble(n);
 };
 
-// v55.1 shared life events: all connected users observe the same routine and NPC exchanges.
-// Do not use Gemini for passive activities; existing chat requests keep their own AI pipeline.
-(()=>{
- let life=null;
- const names={'ai-mung':'멍사자','ai-rabbit':'쥐무는토끼'};
- const safe=s=>String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
- function apply(data){if(data&&typeof data==='object')life=data;}
- function event(message){
-  apply(message.life);
-  const e=message.event;if(!e)return;
-  // Only spoken lines go into the conversation log. Routine actions remain in the activity journal.
-  if(e.kind==='conversation'||e.kind==='visitor'){
-   if(typeof addChatMessage==='function')addChatMessage(e.actor,e.text);
-   const npc=aiFriends.find(n=>n.id===e.id);
-   if(npc){npc.thinking=false;npc.bubble=e.text;npc.bubbleUntil=performance.now()+5500;}
-  }
+/* v55.1: server-synchronized conversations over the original living cafe video. */
+(function(){
+ let lastTurn=0,lastStep=-1,latestState=null;
+ const timers=new Set();
+ const growthLabel=document.querySelector('.cafe-dialogue-head span');
+ function showGrowth(actors,chapter){
+  if(!growthLabel||!actors)return;
+  const mung=actors['ai-mung']?.level||1,rabbit=actors['ai-rabbit']?.level||1;
+  growthLabel.textContent=`☕ 카페의 대화 · 멍사자 Lv.${mung} · 토끼 Lv.${rabbit}${chapter?' · 이야기 '+chapter+'/6':''}`;
  }
- function openLog(){
-  const layer=document.getElementById('modalLayer'),box=document.getElementById('modalContent');
-  if(!layer||!box)return;
-  const npcs=life?.npcs||{},timeline=(life?.timeline||[]).slice().reverse();
-  const stats=Object.entries(npcs).map(([id,n])=>`<div style="padding:9px;margin:6px 0;background:#6d4835;border-radius:10px"><b>${safe(names[id]||id)}</b> · Lv.${Number(n.level)||1}<br>지금: ${safe(n.action)} · 기분 ${Number(n.mood)||0} · 에너지 ${Number(n.energy)||0}</div>`).join('');
-  const rows=timeline.map(e=>`<div style="padding:7px 0;border-bottom:1px solid #8b6a50"><small>${new Date(e.at).toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'})}</small> <b>${safe(e.actor)}</b> · ${safe(e.action)}<br>${safe(e.text)}</div>`).join('');
-  box.innerHTML=`<div style="max-height:65dvh;overflow:auto;padding:12px;color:#fff0db"><h2>☕ 오늘의 카페 생활</h2><p>NPC들은 내가 말하지 않아도 각자의 하루를 보내고 있어.</p>${stats}<h3>생활 기록</h3>${rows||'아직 기록이 없어. 조금 기다려 줘!'}</div>`;
-  layer.hidden=false;
+ function clear(){for(const t of timers)clearTimeout(t);timers.clear()}
+ function show(event){
+  if(mode!=='cafe')return;
+  const npc=aiFriends.find(n=>n.id===event.npcId);if(!npc)return;
+  aiSay(npc,event.text,4200);
  }
- window.ZooCafeLife={apply,event,openLog,get:()=>life};
+ function turn(event,actors){
+  if(!event||!Number.isFinite(event.at))return;
+  if(event.turn<lastTurn||(event.turn===lastTurn&&event.step<=lastStep))return;
+  lastTurn=event.turn;lastStep=event.step;latestState=actors||latestState;showGrowth(latestState,event.chapter);
+  const delay=Math.max(0,Math.min(15000,event.at-Date.now()));
+  const t=setTimeout(()=>{timers.delete(t);show(event)},delay);timers.add(t);
+ }
+ function state(life){
+  if(!life)return;latestState=life.actors;showGrowth(latestState,life.story?.stage?life.story.stage:undefined);
+  // New arrivals hear the current exchange once, without replaying old conversations.
+  const current=(life.history||[]).filter(e=>e.turn===life.turn&&e.at>Date.now()-6000);
+  for(const e of current)turn(e,life.actors);
+ }
+ window.ZooCafeAI.receiveAutonomousTurn=turn;
+ window.ZooCafeAI.receiveAutonomousState=state;
+ window.ZooCafeAI.autonomousState=()=>latestState;
+ window.addEventListener('beforeunload',clear);
+})();
+
+/* v55.2: one stable lower dialogue dock; nothing is anchored to painted faces. */
+(function(){
+ const dock=document.getElementById('cafeDialogueDock');
+ const speaker=document.getElementById('cafeDialogueSpeaker');
+ const line=document.getElementById('cafeDialogueLine');
+ const avatar=document.getElementById('cafeDialogueAvatar');
+ const dots=document.getElementById('cafeDialogueDots');
+ let speakingTimer=null;
+ const history=document.getElementById('cafeDialogueHistory');
+ const toggle=document.getElementById('cafeDialogueHistoryToggle');
+ const participate=document.getElementById('cafeDialogueParticipate');
+ const entries=[];
+ window.showCafeDialogue=function(name,text){
+  if(!dock||!text||mode!=='cafe')return;
+  speaker.textContent=String(name||'카페');line.textContent=String(text).slice(0,260);
+  const character=name==='멍사자'?'mung':name==='쥐무는토끼'?'rabbit':'player';
+  avatar.className='cafe-dialogue-avatar '+character;
+  dots.hidden=character==='player';clearTimeout(speakingTimer);
+  if(character!=='player')speakingTimer=setTimeout(()=>dots.hidden=true,3200);
+  entries.push({name:String(name||'카페'),text:String(text).slice(0,260)});
+  if(entries.length>30)entries.shift();
+  history.replaceChildren(...entries.map(e=>{const row=document.createElement('div');const face=document.createElement('span');face.className='cafe-dialogue-mini '+(e.name==='멍사자'?'mung':e.name==='쥐무는토끼'?'rabbit':'player');const b=document.createElement('b');b.textContent=e.name+'  ';row.append(face,b,document.createTextNode(e.text));return row}));
+  history.scrollTop=history.scrollHeight;
+ };
+ toggle?.addEventListener('click',()=>{history.hidden=!history.hidden;toggle.setAttribute('aria-expanded',String(!history.hidden))});
+ participate?.addEventListener('click',()=>{if(mode==='cafe')openChat()});
+ const originalThinking=aiThinking;
+ aiThinking=function(n){originalThinking(n);if(mode==='cafe'&&avatar&&dots){avatar.className='cafe-dialogue-avatar '+(n.id==='ai-rabbit'?'rabbit':'mung');dots.hidden=false;clearTimeout(speakingTimer);speakingTimer=setTimeout(()=>dots.hidden=true,8500)}};
+ const originalSay=aiSay;
+ aiSay=function(n,text,ms){if(mode==='cafe'){n.thinking=false;n.bubble='';n.bubbleUntil=0;n.lastTalk=performance.now();addChatMessage(n.name,text);showCafeDialogue(n.name,text);return}originalSay(n,text,ms)};
+ const originalSend=sendChat;
+ sendChat=function(){if(mode==='cafe'&&chatInput.value.trim())showCafeDialogue(window.ZOO_USER?.nickname||'나',chatInput.value.trim());originalSend()};
+ // Multiple older renderer wrappers exist; this final wrapper paints the video without NPC speech.
+ const previousDraw=draw;
+ draw=function(){if(mode==='cafe'){
+  document.querySelector('.game-shell')?.classList.add('cafe-visual');
+  z543VideoOn();ctx.clearRect(0,0,W,H);interaction.hidden=true;return;
+ }previousDraw()};
 })();

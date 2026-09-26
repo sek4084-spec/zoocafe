@@ -1,0 +1,18 @@
+{
+  "2a348163-df98-4d14-9a40-59000b6a4ed8::ai-mung": {
+    "level": 2,
+    "xp": 31,
+    "talks": 14,
+    "memories": 1,
+    "lastSeenAt": 1790354995650,
+    "lastWelcomeAt": 1790354995650
+  },
+  "2a348163-df98-4d14-9a40-59000b6a4ed8::ai-rabbit": {
+    "level": 1,
+    "xp": 17,
+    "talks": 7,
+    "memories": 1,
+    "lastSeenAt": 1790354995650,
+    "lastWelcomeAt": 1790354995650
+  }
+}

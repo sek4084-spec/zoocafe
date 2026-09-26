@@ -17,8 +17,8 @@ async function initNpcDb(){
  try{
   npcPool=new Pool({connectionString:dbUrl,ssl:process.env.NODE_ENV==='production'?{rejectUnauthorized:false}:undefined});
   await npcPool.query(`CREATE TABLE IF NOT EXISTS zoocafe_npc_state (id TEXT PRIMARY KEY, payload JSONB NOT NULL, updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW())`);
-  const r=await npcPool.query(`SELECT id,payload FROM zoocafe_npc_state WHERE id IN ('memory','growth','knowledge')`);
-  for(const row of r.rows){if(row.id==='memory'&&row.payload)npcMemory=row.payload;if(row.id==='growth'&&row.payload)npcGrowth=row.payload;if(row.id==='knowledge'&&row.payload)npcKnowledge=row.payload;if(row.id==='life'&&row.payload)restoreNpcLife(row.payload)}
+  const r=await npcPool.query(`SELECT id,payload FROM zoocafe_npc_state WHERE id IN ('memory','growth','knowledge','autonomous-life')`);
+  for(const row of r.rows){if(row.id==='memory'&&row.payload)npcMemory=row.payload;if(row.id==='growth'&&row.payload)npcGrowth=row.payload;if(row.id==='knowledge'&&row.payload)npcKnowledge=row.payload;if(row.id==='autonomous-life'&&row.payload)npcLife=hydrateNpcLife(row.payload)}
   console.log('NPC persistent memory: PostgreSQL connected');return true;
  }catch(e){console.warn('NPC PostgreSQL unavailable; using local JSON fallback:',e.message);npcPool=null;return false}
 }
@@ -131,13 +131,15 @@ function bestPersonalMemory(k,text){
 function localNpcReply(user,npcId,text){
  const k=memKey(user.id,npcId),npc=NPCS[npcId]||NPCS['ai-mung'];
  const personal=bestPersonalMemory(k,text),knowledge=bestKnowledge(npcId,text);
- if(personal)return npcId==='ai-mung'?`기억나. ${cleanMemoryForSpeech(personal)}라고 했었지.`:`응… 기억하고 있어. ${cleanMemoryForSpeech(personal)}라고 했었지.`;
- if(knowledge)return npcId==='ai-mung'?`응, 내가 배운 걸로는 ${knowledge}`:`내가 전에 배운 내용에는 ${knowledge}`;
+ if(personal)return npcId==='ai-mung'?`네가 전에 ${cleanMemoryForSpeech(personal)}라고 했던 게 떠올라. 지금은 그 이야기에서 무엇이 달라졌어?`:`전에 남긴 '${cleanMemoryForSpeech(personal)}'라는 말과 이어지네. 다음에는 어떤 일이 있었어?`;
+ if(knowledge)return npcId==='ai-mung'?`우리가 배운 내용엔 '${knowledge}'라고 적혀 있어. 네가 겪은 경우에는 어땠어?`:`기록에는 '${knowledge}'라고 남아 있어. 지금 말한 상황에도 해당할까?`;
  const mem=(npcMemory[k]||[]),g=growthFor(k),t=String(text||'').trim();
- if(mem.length){const latest=cleanMemoryForSpeech(mem[mem.length-1]);return npcId==='ai-mung'?`${user.nickname}, 응. 네 얘기 듣고 있어. 전에 ${latest}라고 했던 것도 기억나.`:`응… 듣고 있어. 전에 ${latest}라고 했던 것도 기억하고 있어.`}
- if(/[?？]$/.test(t))return npcId==='ai-mung'?'음, 그건 아직 내가 배운 기억에는 없어. 네가 알려주면 기억해둘게!':'그건 아직 내 기록에는 없어… 알려주면 기억해둘게.';
- if((g.talks||0)>2)return npcId==='ai-mung'?`${user.nickname}, 응. 계속 이야기해줘. 네가 알려준 건 하나씩 기억해둘게.`:`응… 계속 말해줘. 중요한 이야기는 기록해둘게.`;
- return npcId==='ai-mung'?'응, 듣고 있어! 조금 더 이야기해줘.':'응… 듣고 있어. 천천히 말해줘.';
+ const recent=recentFor(k),last=recent.filter(v=>v.role==='user').at(-1)?.text||'';
+ const subject=t.replace(/[?？!。.,]/g,'').slice(0,45);
+ if(/[?？]$/.test(t))return npcId==='ai-mung'?`네가 물은 '${subject}'에 대해 내가 아는 건 아직 적어. 어떤 일이 있었는지 들려주면 함께 생각해 볼게.`:`'${subject}'에 관해선 아직 확신이 없어. 네 생각부터 듣고 이어서 이야기해 볼래?`;
+ if(last&&last!==t)return npcId==='ai-mung'?`아까 '${last.slice(0,25)}'라고 했지. 지금 말한 '${subject}'도 그 이야기와 이어지는 것 같아. 어떻게 달라졌어?`:`앞서 '${last.slice(0,25)}'라고 했던 게 떠올라. '${subject}'는 그다음에 생긴 일이야?`;
+ if(mem.length){const latest=cleanMemoryForSpeech(mem[mem.length-1]);return npcId==='ai-mung'?`'${subject}'라는 말이 마음에 남네. 예전에 말한 '${latest.slice(0,28)}'와 이어지는 이야기일까?`:`'${subject}'라고 했지. 네가 남긴 '${latest.slice(0,28)}' 기록과 연결되는지 궁금해.`}
+ return npcId==='ai-mung'?`'${subject}'라고 했구나. 그 일에서 네 마음에 가장 남은 건 뭐야?`:`'${subject}'라는 말을 적어둘게. 그다음엔 무슨 일이 있었어?`;
 }
 function fallbackNpc(npcId,text,user){return user?localNpcReply(user,npcId,text):'응, 듣고 있어.'}
 async function npcThink(user,npcId,text){
@@ -145,8 +147,10 @@ async function npcThink(user,npcId,text){
  const apiKey=process.env.GEMINI_API_KEY;
  if(!apiKey||geminiSleeping()){
   if(directLearned)shareObservedMemory(user.id,npcId,text);
+  const reply=directKnowledge?(npcId==='ai-mung'?'좋아, 그건 내가 배운 지식으로 기억해둘게!':'응… 그건 배운 내용으로 기록해둘게.'):fallbackNpc(npcId,text,user);
+  recent.push({role:'user',text},{role:npc.name,text:reply});while(recent.length>16)recent.shift();
   const grown=addGrowth(k,false);
-  return {reply:directKnowledge?(npcId==='ai-mung'?'좋아, 그건 내가 배운 지식으로 기억해둘게!':'응… 그건 배운 내용으로 기록해둘게.'):fallbackNpc(npcId,text,user),memory:directLearned?'direct':null,knowledgeSaved:directKnowledge,ai:false,provider:geminiSleeping()?'server-brain-cooldown':'server-brain',growth:{level:grown.level,xp:grown.xp,talks:grown.talks,memories:grown.memories,relation:relationName(grown.level)}};
+  return {reply,memory:directLearned?'direct':null,knowledgeSaved:directKnowledge,ai:false,provider:geminiSleeping()?'server-brain-cooldown':'server-brain',growth:{level:grown.level,xp:grown.xp,talks:grown.talks,memories:grown.memories,relation:relationName(grown.level)}};
  }
  const prompt=`너는 ZOO:CAFE의 ${npc.name}다.
 성격: ${npc.personality}
@@ -305,6 +309,12 @@ function syncRoom(mode){
   for(const [peerWs] of room)wsSend(peerWs,{type:'roster',players});
 }
 
+// Shared café video: roll once when the first player enters an empty room.
+// The four available clips have equal 25% weights for this test build.
+const CAFE_SCENE_IDS=[0,1,2,3];
+let cafeSceneId=0;
+function chooseCafeScene(){cafeSceneId=CAFE_SCENE_IDS[Math.floor(Math.random()*CAFE_SCENE_IDS.length)];return cafeSceneId}
+
 // v55: shared cafe atmosphere + random visitor system.
 // One server state is shared by every player so multiplayer users see the same cafe event.
 const CAFE_EVENT_MS=Math.max(5*60*1000,Number(process.env.CAFE_EVENT_MS)||45*60*1000);
@@ -324,72 +334,101 @@ function publicCafeEvent(){return {id:cafeEvent.id,label:cafeEvent.label,visitor
 function rollCafeEvent(){const e=pickCafeEvent(),now=Date.now();cafeEvent={...e,startedAt:now,endsAt:now+CAFE_EVENT_MS};broadcastRoom('cafe',{type:'cafe_event',event:publicCafeEvent()});}
 setInterval(rollCafeEvent,CAFE_EVENT_MS).unref?.();
 
-// v55.1 NPC Life Engine: one shared simulation for every cafe visitor.
-// Routine/actions run without Gemini. Player conversations still use the existing AI bridge.
-const NPC_LIFE_FILE=path.join(__dirname,'data','npc-life.json');
-const LIFE_TICK_MS=Math.max(12000,Number(process.env.NPC_LIFE_TICK_MS)||28000);
-const LIFE_ROUTINES={
- 'ai-mung':[
-  {action:'커피 내리기',mood:3,energy:-2,line:'오늘은 어떤 커피를 내려볼까?'},
-  {action:'카페 정리',mood:1,energy:-3,line:'천천히 정리하면 금방 끝나겠지.'},
-  {action:'창밖 구경',mood:4,energy:2,line:'밖에 풍경이 참 좋네.'},
-  {action:'잠깐 쉬기',mood:3,energy:8,line:'잠깐 쉬어 가는 것도 좋지.'},
-  {action:'손님 맞이',mood:3,energy:-1,line:'어서 와, 편하게 쉬다 가.'}
- ],
- 'ai-rabbit':[
-  {action:'원고 쓰기',mood:-1,energy:-5,line:'이번 장면만 끝내고 쉬어야지…'},
-  {action:'자료 정리',mood:1,energy:-3,line:'이 이야기도 기록해 둬야겠어.'},
-  {action:'커피 마시기',mood:4,energy:7,line:'커피 한 모금… 이제 좀 살겠다.'},
-  {action:'창밖 관찰',mood:3,energy:2,line:'저 풍경은 다음 이야기에 써먹을 수 있겠어.'},
-  {action:'꾸벅꾸벅 졸기',mood:2,energy:10,line:'딱 5분만 눈 감을게…'}
- ]
-};
-const clampLife=n=>Math.max(0,Math.min(100,n));
-const defaultLife=()=>({
- 'ai-mung':{action:'커피 내리기',mood:75,energy:80,experience:0,level:1,relationships:{'ai-rabbit':12},lastActionAt:Date.now()},
- 'ai-rabbit':{action:'원고 쓰기',mood:50,energy:42,experience:0,level:1,relationships:{'ai-mung':12},lastActionAt:Date.now()}
-});
-let npcLife=defaultLife(),lifeTimeline=[];
-function restoreNpcLife(data){if(!data||typeof data!=='object')return;for(const id of Object.keys(LIFE_ROUTINES))if(data.npcs?.[id])npcLife[id]={...npcLife[id],...data.npcs[id]};if(Array.isArray(data.timeline))lifeTimeline=data.timeline.slice(-20)}
-try{restoreNpcLife(JSON.parse(fs.readFileSync(NPC_LIFE_FILE,'utf8')))}catch{}
-function publicLife(){return {npcs:npcLife,timeline:lifeTimeline.slice(-12),at:Date.now()}}
-function saveLife(){const data={npcs:npcLife,timeline:lifeTimeline.slice(-20)};try{fs.mkdirSync(path.dirname(NPC_LIFE_FILE),{recursive:true});fs.writeFileSync(NPC_LIFE_FILE,JSON.stringify(data,null,2))}catch(e){console.warn('NPC life save:',e.message)}persistNpcDb('life',data)}
-function lifeEvent(id,action,text,kind='routine'){
- const event={id,actor:id==='ai-mung'?'멍사자':id==='ai-rabbit'?'쥐무는토끼':cafeEvent.visitor?.name||'방문 손님',action,text,kind,at:Date.now()};
- lifeTimeline.push(event);lifeTimeline=lifeTimeline.slice(-20);
- broadcastRoom('cafe',{type:'npc_life_event',event,life:publicLife()});
- return event;
-}
-let lifeTurn=0;
-function tickNpcLife(){
- lifeTurn++;
- const id=lifeTurn%2?'ai-mung':'ai-rabbit',state=npcLife[id],options=LIFE_ROUTINES[id];
- // Low energy leads to rest, not endless random actions.
- const selected=state.energy<24?options.find(v=>/쉬기|졸기/.test(v.action)):options[Math.floor(Math.random()*options.length)];
- state.action=selected.action;state.mood=clampLife(state.mood+selected.mood);state.energy=clampLife(state.energy+selected.energy);
- state.experience++;state.level=1+Math.floor(state.experience/20);state.lastActionAt=Date.now();
- lifeEvent(id,state.action,selected.line);
- // Every fourth turn: an NPC-to-NPC exchange, without using the Gemini quota.
- if(lifeTurn%4===0){
-  const a=npcLife['ai-mung'],b=npcLife['ai-rabbit'];
-  a.relationships['ai-rabbit']=(a.relationships['ai-rabbit']||0)+1;
-  b.relationships['ai-mung']=(b.relationships['ai-mung']||0)+1;
-  const exchanges=[
-   ['멍사자','토끼야, 커피 한 잔 더 줄까?','쥐무는토끼','…응. 오늘은 진하게 부탁해.'],
-   ['쥐무는토끼','오늘 손님이 많네…','멍사자','그러게. 그래도 북적이니까 좋다.'],
-   ['멍사자','글은 잘 써지고 있어?','쥐무는토끼','한 문장씩은… 나아지고 있어.']
-  ];
-  const ex=exchanges[Math.floor(Math.random()*exchanges.length)];
-  lifeEvent(ex[0]==='멍사자'?'ai-mung':'ai-rabbit','서로 대화',ex[1],'conversation');
-  lifeEvent(ex[2]==='멍사자'?'ai-mung':'ai-rabbit','서로 대화',ex[3],'conversation');
+// Shared NPC-to-NPC life. One server clock, so spectators see the same exchange.
+const NPC_LIFE_FILE=path.join(__dirname,'data','npc-autonomous-life.json');
+const NPC_LIFE_MS=Math.max(12000,Number(process.env.NPC_LIFE_MS)||26000);
+const defaultNpcLife=()=>({turn:0,topic:'오늘의 카페',history:[],story:{arc:0,stage:0,summary:'',memories:[]},actors:{
+ 'ai-mung':{mood:72,energy:78,xp:0,level:1,relationship:12,lastAction:'커피 내리기'},
+ 'ai-rabbit':{mood:55,energy:62,xp:0,level:1,relationship:12,lastAction:'원고 쓰기'}
+}});
+function hydrateNpcLife(value){
+ const d=defaultNpcLife();if(!value||typeof value!=='object')return d;
+ d.turn=Math.max(0,Number(value.turn)||0);d.topic=String(value.topic||d.topic).slice(0,60);
+ d.history=Array.isArray(value.history)?value.history.slice(-30).filter(e=>NPCS[e.npcId]&&typeof e.text==='string'):[];
+ if(value.story&&typeof value.story==='object')d.story={arc:Math.max(0,Number(value.story.arc)||0),stage:Math.max(0,Math.min(5,Number(value.story.stage)||0)),summary:String(value.story.summary||'').slice(0,180),memories:Array.isArray(value.story.memories)?value.story.memories.slice(-16).map(v=>String(v).slice(0,160)):[]};
+ for(const id of Object.keys(d.actors))if(value.actors?.[id]){
+  const v=value.actors[id];for(const key of ['mood','energy','xp','level','relationship'])if(Number.isFinite(Number(v[key])))d.actors[id][key]=Number(v[key]);
+  d.actors[id].lastAction=String(v.lastAction||d.actors[id].lastAction).slice(0,50);
  }
- if(cafeEvent.visitor&&lifeTurn%5===0){
-  const v=cafeEvent.visitor;
-  lifeEvent(v.id,'카페 방문',v.line,'visitor');
- }
- saveLife();
+ return d;
 }
-setInterval(tickNpcLife,LIFE_TICK_MS).unref?.();
+let npcLife=(()=>{try{return hydrateNpcLife(JSON.parse(fs.readFileSync(NPC_LIFE_FILE,'utf8')))}catch{return defaultNpcLife()}})();
+function saveNpcLife(){try{fs.mkdirSync(path.dirname(NPC_LIFE_FILE),{recursive:true});fs.writeFileSync(NPC_LIFE_FILE,JSON.stringify(npcLife,null,2))}catch(e){console.warn('NPC life save',e.message)}persistNpcDb('autonomous-life',npcLife)}
+const npcChapters=[
+ {title:'원고의 첫 문장',object:'지워진 원고',memory:'평범한 손님의 웃음에도 사연이 있다',lines:[
+  ['첫 문장을 지워 버렸어. 어떻게 다시 쓸까?','지우기 전에 가장 선명했던 장면이 뭐야?','비를 피해 온 손님이 웃던 모습이야.'],
+  ['아까 말한 손님은 왜 웃었던 것 같아?','그때는 몰랐어. 그래서 이야기가 멈췄어.','그 마음을 모른다는 사실부터 적어 보면 어때?'],
+  ['모른다고 적어 봤어. 다음 문장이 나올까?','그 손님이 앉았던 자리는 기억나?','응, 창가였어. 손에 젖은 편지가 있었지.'],
+  ['젖은 편지라면 손님에게 소중한 걸까?','그럴지도. 웃음 뒤에 걱정이 있었겠어.','그 두 마음을 함께 담아 보자.'],
+  ['이제 첫 문장을 썼어. 비와 웃음이 같이 있어.','어제 지웠던 때와는 어떻게 달라?','손님의 마음을 서둘러 정하지 않게 됐어.'],
+  ['원고를 읽어 봤어. 끝까지 궁금하더라.','고마워. 평범한 웃음에도 사연이 있더라.','그걸 이번 이야기의 기억으로 남기자.']]},
+ {title:'창가의 빈 의자',object:'비어 있는 의자',memory:'기다리는 마음도 말로 전할 수 있다',lines:[
+  ['늘 창가에 앉던 손님이 며칠째 안 보여.','그 손님이 있던 자리가 그리운 거야?','응, 컵을 두 손으로 감싸던 게 떠올라.'],
+  ['어제 그 손님의 컵 이야기를 했지.','맞아. 돌아오면 따뜻한 걸 건네고 싶어.','어떤 말부터 하고 싶어?'],
+  ['무사히 지냈냐고 묻고 싶은데 부담스러울까?','그럼 먼저 반가웠다고만 말해 줘.','짧은 말이라면 나도 할 수 있겠어.'],
+  ['그 자리에 작은 쪽지를 놓아 봤어.','뭐라고 적었어?','다시 오면 따뜻한 한 잔 준비할게, 라고.'],
+  ['오늘 손님이 쪽지를 보고 웃었어.','정말? 어떤 말을 했어?','기다려 줘서 고맙다고 했어.'],
+  ['빈 의자를 보던 마음이 조금 달라졌어.','기다리는 마음도 전해질 수 있구나.','응, 그 말을 수첩에 적어 둘게.']]},
+ {title:'향을 고르는 일',object:'새로 볶은 원두',memory:'위로는 상대의 이야기를 먼저 듣는 데서 시작한다',lines:[
+  ['오늘 볶은 원두 향이 유난히 진해.','네게는 어떤 기억이 떠올라?','일을 마치고 마시던 따뜻한 한 잔.'],
+  ['아까 말한 그 커피를 손님에게도 줄 거야?','잠깐, 모두가 같은 향을 좋아하진 않겠지.','손님의 하루를 먼저 물어보면 어떨까?'],
+  ['손님에게 어떤 하루였는지 물었어.','뭐라고 하셨어?','조용한 시간이 필요하다고 했어.'],
+  ['그럼 오늘은 진한 커피 대신 뭘 건넸어?','부드러운 차를 드렸어. 말은 조금만 했고.','그 선택을 손님은 어떻게 받아들였어?'],
+  ['고맙다고 했어. 차보다 조용한 자리가 좋았대.','우리가 처음 떠올린 위로와 다르네.','응. 다음엔 먼저 들어야겠어.'],
+  ['손님 이야기를 듣고 나니 내 마음도 편해.','한 가지 방식만 고집하지 않게 됐구나.','그걸 내일 커피를 내릴 때도 기억할게.']]}
+];
+function storyNpcExchange(){
+ const story=npcLife.story,chapter=npcChapters[story.arc%npcChapters.length],rows=chapter.lines[story.stage]||chapter.lines[0];
+ const first=story.stage===0&&story.summary?`지난번에 ${story.summary}고 했지. ${rows[0]}`:rows[0];
+ return rows.map((line,i)=>[i===1?'ai-mung':'ai-rabbit',i===0?first:line]);
+}
+async function aiNpcExchange(topic){
+ if(!process.env.GEMINI_API_KEY||geminiSleeping())return null;
+ const model=process.env.ZOO_AI_MODEL||'gemini-3.8-flash';
+ const story=npcLife.story,chapter=npcChapters[story.arc%npcChapters.length];
+ const prompt=`주카페의 NPC 두 명이 플레이어와 무관하게 서로 짧게 대화한다. 멍사자는 따뜻하고 느긋한 카페지기, 쥐무는토끼는 조용한 작가다. 현재 이야기: ${chapter.title}, 다음 단계 ${story.stage+1}/6. 지난 이야기의 결론: ${story.summary||'없음'}. 오래 기억하는 일: ${story.memories.slice(-5).join(' / ')||'없음'}. 최근 대화: ${npcLife.history.slice(-9).map(e=>NPCS[e.npcId].name+': '+e.text).join(' / ')}. 첫 대사는 직전 대사의 구체적 내용에 반응하고, 서로 답하면서 한 장면을 앞으로 진행해라. 매번 다시 인사하거나 이미 끝낸 원고를 처음부터 시작하지 마라. NPC의 변화와 배움을 자연스럽게 드러내라. 한국어 JSON 배열만 출력. 정확히 세 항목, 각 항목은 {"npcId":"ai-mung 또는 ai-rabbit","text":"60자 이내 대사"}. 번갈아 말하고 서로의 말에 답해야 한다.`;
+ try{
+  const r=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`,{method:'POST',signal:AbortSignal.timeout(5500),headers:{'Content-Type':'application/json','x-goog-api-key':process.env.GEMINI_API_KEY},body:JSON.stringify({contents:[{role:'user',parts:[{text:prompt}]}],generationConfig:{maxOutputTokens:230,responseMimeType:'application/json'}})});
+  if(r.status===429){sleepGemini('429 quota/rate limit');return null}if(!r.ok)return null;
+  const data=await r.json(),raw=(data.candidates?.[0]?.content?.parts||[]).map(p=>p.text||'').join('');
+  const turns=JSON.parse(raw);if(!Array.isArray(turns)||turns.length!==3)return null;
+  if(!turns.every((v,i)=>NPCS[v.npcId]&&typeof v.text==='string'&&v.text.trim().length>0&&v.text.length<=100&&(i===0||v.npcId!==turns[i-1].npcId)))return null;
+  const recent=new Set(npcLife.history.slice(-24).map(e=>e.text.replace(/\s/g,'')));
+  if(turns.some(v=>recent.has(v.text.trim().replace(/\s/g,''))))return null;
+  return turns.map(v=>[v.npcId,v.text.trim().slice(0,100)]);
+ }catch(e){console.warn('Autonomous NPC fallback:',e.message);return null}
+}
+let npcLifeBusy=false;
+async function tickNpcLife(){
+ if(npcLifeBusy||roomClients('cafe').length===0)return;npcLifeBusy=true;
+ try{
+  const chapter=npcChapters[npcLife.story.arc%npcChapters.length];
+  const topic=chapter.title;
+  let lines=await aiNpcExchange(topic);
+  if(!lines)lines=storyNpcExchange();
+  npcLife.turn++;npcLife.topic=topic;
+  for(let i=0;i<lines.length;i++){
+   const [npcId,text]=lines[i],a=npcLife.actors[npcId];
+   a.lastAction=i===0?'이야기 꺼내기':'서로 대화';a.xp++;a.level=1+Math.floor(a.xp/20);
+   a.energy=Math.max(20,Math.min(100,a.energy+(npcId==='ai-rabbit'?-1:1)));
+   a.mood=Math.min(100,a.mood+1);a.relationship=Math.min(100,a.relationship+1);
+   const event={npcId,text,topic,chapter:npcLife.story.stage+1,action:a.lastAction,at:Date.now()+i*4300,turn:npcLife.turn,step:i};
+   npcLife.history.push(event);
+   broadcastRoom('cafe',{type:'npc_autonomous_turn',event,actors:npcLife.actors});
+  }
+  npcLife.history=npcLife.history.slice(-30);
+  npcLife.story.stage++;
+  if(npcLife.story.stage>=chapter.lines.length){
+   npcLife.story.summary=chapter.memory;
+   if(!npcLife.story.memories.includes(chapter.memory))npcLife.story.memories.push(chapter.memory);
+   npcLife.story.memories=npcLife.story.memories.slice(-16);
+   npcLife.story.arc++;npcLife.story.stage=0;
+   for(const a of Object.values(npcLife.actors)){a.xp+=2;a.level=1+Math.floor(a.xp/20);a.relationship=Math.min(100,a.relationship+2)}
+  }
+  saveNpcLife();
+ }finally{npcLifeBusy=false}
+}
+setInterval(()=>tickNpcLife().catch(e=>console.warn('NPC life tick',e.message)),NPC_LIFE_MS).unref?.();
 
 
 
@@ -402,10 +441,15 @@ wss.on('connection',ws=>{
       c.authed=true;c.user=safeUser(user);wsSend(ws,{type:'ready',user:c.user});syncRoom(c.mode);return;
     }
     if(m.type==='state'){
-      const old=c.mode, next=validModes.has(m.mode)?m.mode:c.mode;c.mode=next;
+      const old=c.mode, next=validModes.has(m.mode)?m.mode:c.mode;
+      const cafeWasEmpty=old!=='cafe'&&next==='cafe'&&roomClients('cafe').length===0;
+      c.mode=next;
       if(old!=='cafe'&&next==='cafe'){
-        wsSend(ws,{type:'cafe_event',event:publicCafeEvent()});wsSend(ws,{type:'npc_life_state',life:publicLife()});
-        for(const w of returningNpcWelcomes(c.user))wsSend(ws,{type:'npc_welcome',...w,personal:true,at:Date.now()});
+        if(cafeWasEmpty)chooseCafeScene();
+        wsSend(ws,{type:'cafe_scene',sceneId:cafeSceneId,weights:[25,25,25,25]});
+        wsSend(ws,{type:'cafe_event',event:publicCafeEvent()});
+        wsSend(ws,{type:'npc_autonomous_state',life:npcLife});
+        // Entry does not trigger an unsolicited NPC line.
       }
       const maxX=next==='world'?2880:960,maxY=next==='world'?1800:540;
       c.x=Math.max(0,Math.min(maxX,Number(m.x)||0));c.y=Math.max(0,Math.min(maxY,Number(m.y)||0));

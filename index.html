@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>ZOO:CAFE</title><link rel="stylesheet" href="style.css?v=5520">
+<title>ZOO:CAFE</title><link rel="stylesheet" href="style.css?v=5541">
 </head>
 <body>
 <section class="auth-screen" id="authScreen">
@@ -29,7 +29,7 @@
       <canvas id="game" width="960" height="540" aria-label="ZOO:CAFE 게임 배경과 플레이어"></canvas>
       <canvas id="entityLayer" width="960" height="540" aria-label="ZOO:CAFE 캐릭터 레이어"></canvas>
       <div class="hud hud-controls">WASD / 방향키</div>
-      <div class="version-badge" aria-label="게임 버전">ZOO:CAFE v55.2 · NPC Life + Fixed Bubbles</div><div class="interaction" id="interaction" hidden><span class="key">E</span><span id="interactionText">카페 들어가기</span></div>
+      <div class="version-badge" aria-label="현재 카페 영상">ZOO:CAFE · 영상 코드 로딩 중</div><div class="interaction" id="interaction" hidden><span class="key">E</span><span id="interactionText">카페 들어가기</span></div>
       <div class="mobile-controls" id="mobileControls" aria-label="모바일 게임 조작">
         <div class="virtual-stick" id="virtualStick"><div class="stick-ring"></div><div class="stick-knob" id="stickKnob"></div></div>
         <div class="mobile-actions"><button type="button" class="mobile-chat" id="mobileChatBtn">💬</button><button type="button" class="mobile-action" id="mobileActionBtn"><b>E</b><span>상호작용</span></button></div>
@@ -56,9 +56,14 @@
         <button class="cafe-hot cafe-hot-chat" id="cafeChatBtn" title="채팅 입력" aria-label="채팅 입력"></button>
         <button class="cafe-hot cafe-hot-quest" data-panel="menu" title="퀘스트" aria-label="퀘스트"></button>
       </div>
-      <button class="cafe-event-chip" id="cafeEventChip" type="button" title="오늘의 카페 생활 기록" hidden><span>☕</span><b>평범한 오후</b></button>
+      <div class="cafe-event-chip" id="cafeEventChip" hidden><span>☕</span><b>평범한 오후</b></div>
       <button class="cafe-visitor" id="cafeVisitor" type="button" hidden aria-label="오늘 찾아온 손님"><span class="visitor-icon">🐱</span><span><b>고양이 여행자</b><small>오늘의 손님</small></span></button>
-      <div class="mobile-npc-speech" id="mobileNpcSpeech" aria-live="polite"><div class="mobile-npc-bubble mung" id="mobileMungBubble" hidden><b>멍사자</b><span></span></div><div class="mobile-npc-bubble rabbit" id="mobileRabbitBubble" hidden><b>쥐무는토끼</b><span></span></div></div>
+      <section class="cafe-dialogue-dock" id="cafeDialogueDock" aria-label="카페의 대화" aria-live="polite">
+        <div class="cafe-dialogue-head"><span>☕ 카페의 대화</span><button id="cafeDialogueHistoryToggle" type="button" aria-expanded="false">지난 대화 보기 ▴</button></div>
+        <div class="cafe-dialogue-current"><div class="cafe-dialogue-avatar" id="cafeDialogueAvatar" aria-hidden="true"><span class="cafe-dialogue-dots" id="cafeDialogueDots" hidden>···</span></div><div class="cafe-dialogue-copy"><strong id="cafeDialogueSpeaker">카페</strong><span id="cafeDialogueLine">새로운 이야기가 시작되기를 기다리는 중…</span></div></div>
+        <div class="cafe-dialogue-history" id="cafeDialogueHistory" hidden></div>
+        <button class="cafe-dialogue-participate" id="cafeDialogueParticipate" type="button">대화 참여 ↗</button>
+      </section>
       <div class="chat-input-wrap" id="chatInputWrap" hidden><span class="chat-name" data-user-nickname>멍사자</span><input id="chatInput" maxlength="80" autocomplete="off" placeholder="메시지를 입력하세요..." aria-label="채팅 메시지"><span class="chat-send-hint">Enter 전송 · Esc 닫기</span></div>
     </section>
 
@@ -93,7 +98,7 @@
 </div>
 <audio id="cityBgm" src="audio/city-outside.mp3" preload="auto" loop></audio>
 <audio id="cafeBgm" src="audio/cafe-inside.mp3" preload="auto" loop></audio>
-<script src="assets.js?v=5520"></script><script src="game.js?v=5520"></script><script src="entity_engine.js?v=5520"></script><script src="ui.js?v=5520"></script><script src="auth.js?v=500"></script><script src="online.js?v=5520"></script>
+<script src="scene-selection.js?v=5542"></script><script src="assets.js?v=5500"></script><script src="game.js?v=5550"></script><script src="entity_engine.js?v=5500"></script><script src="ui.js?v=5500"></script><script src="auth.js?v=500"></script><script src="online.js?v=5542"></script>
 <script>
 (()=>{
  const chip=document.getElementById('cafeEventChip'),visitor=document.getElementById('cafeVisitor');let current=null;
@@ -107,5 +112,4 @@
  window.ZooCafeCafeEvent={apply,get:()=>current};
 })();
 </script>
-<script>document.getElementById("cafeEventChip")?.addEventListener("click",()=>window.ZooCafeLife?.openLog?.());</script>
 </body></html>

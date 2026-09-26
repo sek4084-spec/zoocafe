@@ -594,41 +594,41 @@ body.scene-video-active .game-shell.cafe-visual #game,
 .game-shell[data-cafe-event="rare"] .game-stage:after{content:"";position:absolute;inset:0;z-index:5;pointer-events:none;background:rgba(37,31,74,.13)}
 @media(max-width:700px),(hover:none) and (pointer:coarse){.cafe-event-chip{position:fixed;top:max(62px,calc(env(safe-area-inset-top) + 62px));font-size:10px;padding:5px 9px}.cafe-visitor{position:fixed;right:12px;bottom:31dvh;padding:6px 8px;max-width:130px}.cafe-visitor .visitor-icon{font-size:23px}.cafe-visitor b{font-size:10px}.cafe-visitor small{font-size:8px}}
 
-/* v55.1 clickable shared-life journal */
-.cafe-event-chip{cursor:pointer;font:inherit}
-
-/* v55.2 — fixed, separated speech zones tuned to the portrait cafe artwork.
-   These are HUD anchors, NOT children of the panning video. Tune the four
-   variables below for future artwork if NPC positions change. */
-@media (max-width:700px), (hover:none) and (pointer:coarse){
-  .game-shell.cafe-visual{
-    --mung-speech-x:3vw; --mung-speech-y:33dvh;
-    --rabbit-speech-x:3vw; --rabbit-speech-y:49dvh;
-  }
-  .game-shell.cafe-visual #mobileNpcSpeech{
-    position:fixed!important;inset:0!important;transform:none!important;
-    z-index:92!important;pointer-events:none!important;
-  }
-  .game-shell.cafe-visual #mobileNpcSpeech .mobile-npc-bubble{
-    position:fixed!important;bottom:auto!important;right:auto!important;
-    transform:none!important;max-width:min(42vw,210px)!important;
-    min-width:0!important;box-sizing:border-box!important;
-    font-size:clamp(10px,2.8vw,13px)!important;line-height:1.4!important;
-    padding:9px 11px!important;
-  }
-  .game-shell.cafe-visual #mobileMungBubble{
-    left:var(--mung-speech-x)!important;top:var(--mung-speech-y)!important;
-  }
-  .game-shell.cafe-visual #mobileRabbitBubble{
-    left:auto!important;right:var(--rabbit-speech-x)!important;
-    top:var(--rabbit-speech-y)!important;
-  }
-  .game-shell.cafe-visual #mobileMungBubble:after{left:28%!important;right:auto!important}
-  .game-shell.cafe-visual #mobileRabbitBubble:after{right:25%!important;left:auto!important}
-  body.chatting .game-shell.cafe-visual #mobileMungBubble{top:var(--mung-speech-y)!important;transform:none!important}
-  body.chatting .game-shell.cafe-visual #mobileRabbitBubble{top:var(--rabbit-speech-y)!important;transform:none!important}
-  .game-shell.cafe-visual #mobileNpcSpeech .mobile-npc-bubble[hidden]{display:none!important}
+/* v55.2: fixed lower dialogue dock replaces all NPC speech bubbles. */
+.mobile-npc-speech,.mobile-npc-bubble{display:none!important}
+.cafe-dialogue-dock{display:none;position:absolute;z-index:90;bottom:10px;left:50%;transform:translateX(-50%);width:min(830px,83%);min-height:100px;padding:12px 162px 14px 19px;color:#fff3dc;background:linear-gradient(115deg,rgba(45,28,19,.96),rgba(58,35,22,.93));border:1px solid #d8a966;border-radius:18px;box-shadow:0 10px 32px #170e0990;backdrop-filter:blur(8px);font-family:'Noto Sans KR','Malgun Gothic',sans-serif}
+.game-shell.cafe-visual .cafe-dialogue-dock{display:block}
+.cafe-dialogue-head{display:flex;align-items:center;gap:14px;font-size:12px;color:#e6bc7e;margin-bottom:8px;font-weight:800}
+.cafe-dialogue-head button{border:0;background:none;color:#d0b494;font-size:11px;padding:0;cursor:pointer}
+.cafe-dialogue-current{display:flex;align-items:baseline;gap:16px;font-size:16px;line-height:1.5}
+.cafe-dialogue-current strong{white-space:nowrap;color:#ffcf88;font-size:17px}
+.cafe-dialogue-current span{overflow-wrap:anywhere}
+.cafe-dialogue-participate{position:absolute;right:15px;bottom:15px;border:1px solid #ecc48a;border-radius:100px;padding:10px 14px;background:#a16f42;color:#fff8e8;font-weight:800;cursor:pointer}
+.cafe-dialogue-history{max-height:150px;overflow:auto;border-top:1px solid #a97e55;margin-top:11px;padding-top:7px;font-size:12px;line-height:1.7}
+.cafe-dialogue-history[hidden]{display:none}
+.cafe-dialogue-history b{color:#f4cb8a}
+body.chatting .game-shell.cafe-visual .cafe-dialogue-dock{display:none!important}
+@media(max-width:700px),(hover:none) and (pointer:coarse){
+ .cafe-dialogue-dock{position:fixed;left:8px;right:8px;bottom:max(12px,env(safe-area-inset-bottom));transform:none;width:auto;min-height:106px;padding:10px 12px 48px;border-radius:14px}
+ .cafe-dialogue-head{font-size:11px;margin-bottom:5px}.cafe-dialogue-current{font-size:13px;gap:8px}.cafe-dialogue-current strong{font-size:13px}
+ .cafe-dialogue-participate{bottom:8px;right:10px;padding:6px 10px;font-size:11px}
+ .cafe-dialogue-history{max-height:95px}
 }
 
-/* merged patch: enable life journal tap */
-.game-shell.cafe-visual .cafe-event-chip{pointer-events:auto!important;cursor:pointer!important}
+/* v55.3: illustrated faces identify each line; the dots sit on the portrait. */
+.cafe-dialogue-current{align-items:center;gap:13px}
+.cafe-dialogue-avatar,.cafe-dialogue-mini{position:relative;display:inline-block;flex:none;border:2px solid #e5b977;border-radius:50%;background-color:#78563d;background-image:url('images/cafe-v54-8-new.png');background-repeat:no-repeat;box-shadow:0 2px 7px #160e0a99}
+.cafe-dialogue-avatar{width:62px;height:62px}
+.cafe-dialogue-avatar.mung{background-size:640px 427px;background-position:-82px -152px}
+.cafe-dialogue-avatar.rabbit{background-size:640px 427px;background-position:-255px -245px}
+.cafe-dialogue-avatar.player,.cafe-dialogue-mini.player{background-image:none;background-color:#826244}
+.cafe-dialogue-avatar.player:before,.cafe-dialogue-mini.player:before{content:'🐾';position:absolute;inset:0;display:grid;place-items:center;font-size:23px}
+.cafe-dialogue-copy{display:flex;flex-direction:column;gap:2px;min-width:0}
+.cafe-dialogue-dots{position:absolute;right:-11px;top:-11px;z-index:2;background:#fff3d5;border:1px solid #8b6245;color:#5c3525;border-radius:12px;padding:0 6px;line-height:19px;font-size:17px;font-weight:900;box-shadow:0 2px 6px #140b0766}
+.cafe-dialogue-dots[hidden]{display:none}
+.cafe-dialogue-history>div{display:flex;align-items:center;gap:5px;margin:4px 0}
+.cafe-dialogue-mini{width:25px;height:25px;border-width:1px}
+.cafe-dialogue-mini.mung{background-size:267px 178px;background-position:-34px -64px}
+.cafe-dialogue-mini.rabbit{background-size:267px 178px;background-position:-107px -103px}
+.cafe-dialogue-mini.player:before{font-size:12px}
+@media(max-width:700px),(hover:none) and (pointer:coarse){.cafe-dialogue-avatar{width:46px;height:46px}.cafe-dialogue-avatar.mung{background-size:475px 317px;background-position:-61px -114px}.cafe-dialogue-avatar.rabbit{background-size:475px 317px;background-position:-189px -182px}.cafe-dialogue-avatar.player:before{font-size:18px}.cafe-dialogue-current{gap:10px}}

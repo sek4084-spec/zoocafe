@@ -1,0 +1,188 @@
+{
+  "npcs": {
+    "ai-mung": {
+      "action": "커피 내리기",
+      "mood": 100,
+      "energy": 98,
+      "experience": 26,
+      "level": 2,
+      "relationships": {
+        "ai-rabbit": 25
+      },
+      "lastActionAt": 1790352811623
+    },
+    "ai-rabbit": {
+      "action": "창밖 관찰",
+      "mood": 100,
+      "energy": 99,
+      "experience": 26,
+      "level": 2,
+      "relationships": {
+        "ai-mung": 25
+      },
+      "lastActionAt": 1790352839637
+    }
+  },
+  "timeline": [
+    {
+      "id": "ai-mung",
+      "actor": "멍사자",
+      "action": "서로 대화",
+      "text": "글은 잘 써지고 있어?",
+      "kind": "conversation",
+      "at": 1790352503549
+    },
+    {
+      "id": "ai-rabbit",
+      "actor": "쥐무는토끼",
+      "action": "서로 대화",
+      "text": "한 문장씩은… 나아지고 있어.",
+      "kind": "conversation",
+      "at": 1790352503549
+    },
+    {
+      "id": "ai-mung",
+      "actor": "멍사자",
+      "action": "잠깐 쉬기",
+      "text": "잠깐 쉬어 가는 것도 좋지.",
+      "kind": "routine",
+      "at": 1790352531557
+    },
+    {
+      "id": "ai-rabbit",
+      "actor": "쥐무는토끼",
+      "action": "자료 정리",
+      "text": "이 이야기도 기록해 둬야겠어.",
+      "kind": "routine",
+      "at": 1790352559567
+    },
+    {
+      "id": "ai-mung",
+      "actor": "멍사자",
+      "action": "창밖 구경",
+      "text": "밖에 풍경이 참 좋네.",
+      "kind": "routine",
+      "at": 1790352587570
+    },
+    {
+      "id": "ai-rabbit",
+      "actor": "쥐무는토끼",
+      "action": "커피 마시기",
+      "text": "커피 한 모금… 이제 좀 살겠다.",
+      "kind": "routine",
+      "at": 1790352615577
+    },
+    {
+      "id": "ai-mung",
+      "actor": "멍사자",
+      "action": "서로 대화",
+      "text": "토끼야, 커피 한 잔 더 줄까?",
+      "kind": "conversation",
+      "at": 1790352615577
+    },
+    {
+      "id": "ai-rabbit",
+      "actor": "쥐무는토끼",
+      "action": "서로 대화",
+      "text": "…응. 오늘은 진하게 부탁해.",
+      "kind": "conversation",
+      "at": 1790352615577
+    },
+    {
+      "id": "ai-mung",
+      "actor": "멍사자",
+      "action": "카페 정리",
+      "text": "천천히 정리하면 금방 끝나겠지.",
+      "kind": "routine",
+      "at": 1790352643582
+    },
+    {
+      "id": "ai-rabbit",
+      "actor": "쥐무는토끼",
+      "action": "꾸벅꾸벅 졸기",
+      "text": "딱 5분만 눈 감을게…",
+      "kind": "routine",
+      "at": 1790352671593
+    },
+    {
+      "id": "ai-mung",
+      "actor": "멍사자",
+      "action": "손님 맞이",
+      "text": "어서 와, 편하게 쉬다 가.",
+      "kind": "routine",
+      "at": 1790352699594
+    },
+    {
+      "id": "ai-rabbit",
+      "actor": "쥐무는토끼",
+      "action": "커피 마시기",
+      "text": "커피 한 모금… 이제 좀 살겠다.",
+      "kind": "routine",
+      "at": 1790352727593
+    },
+    {
+      "id": "ai-rabbit",
+      "actor": "쥐무는토끼",
+      "action": "서로 대화",
+      "text": "오늘 손님이 많네…",
+      "kind": "conversation",
+      "at": 1790352727594
+    },
+    {
+      "id": "ai-mung",
+      "actor": "멍사자",
+      "action": "서로 대화",
+      "text": "그러게. 그래도 북적이니까 좋다.",
+      "kind": "conversation",
+      "at": 1790352727594
+    },
+    {
+      "id": "ai-mung",
+      "actor": "멍사자",
+      "action": "잠깐 쉬기",
+      "text": "잠깐 쉬어 가는 것도 좋지.",
+      "kind": "routine",
+      "at": 1790352755598
+    },
+    {
+      "id": "ai-rabbit",
+      "actor": "쥐무는토끼",
+      "action": "자료 정리",
+      "text": "이 이야기도 기록해 둬야겠어.",
+      "kind": "routine",
+      "at": 1790352783610
+    },
+    {
+      "id": "ai-mung",
+      "actor": "멍사자",
+      "action": "커피 내리기",
+      "text": "오늘은 어떤 커피를 내려볼까?",
+      "kind": "routine",
+      "at": 1790352811623
+    },
+    {
+      "id": "ai-rabbit",
+      "actor": "쥐무는토끼",
+      "action": "창밖 관찰",
+      "text": "저 풍경은 다음 이야기에 써먹을 수 있겠어.",
+      "kind": "routine",
+      "at": 1790352839637
+    },
+    {
+      "id": "ai-mung",
+      "actor": "멍사자",
+      "action": "서로 대화",
+      "text": "토끼야, 커피 한 잔 더 줄까?",
+      "kind": "conversation",
+      "at": 1790352839637
+    },
+    {
+      "id": "ai-rabbit",
+      "actor": "쥐무는토끼",
+      "action": "서로 대화",
+      "text": "…응. 오늘은 진하게 부탁해.",
+      "kind": "conversation",
+      "at": 1790352839637
+    }
+  ]
+}

@@ -1,0 +1,315 @@
+{
+  "turn": 1284,
+  "topic": "원고의 첫 문장",
+  "history": [
+    {
+      "npcId": "ai-mung",
+      "text": "여우 작가이 왔네. 따뜻한 자리를 내어줄까?",
+      "topic": "새로 온 여우 작가",
+      "action": "이야기 꺼내기",
+      "at": 1790388678199,
+      "turn": 1275,
+      "step": 0
+    },
+    {
+      "npcId": "ai-rabbit",
+      "text": "응, 쉬어 가는 모습도 이야기 같아.",
+      "topic": "새로 온 여우 작가",
+      "action": "서로 대화",
+      "at": 1790388682499,
+      "turn": 1275,
+      "step": 1
+    },
+    {
+      "npcId": "ai-mung",
+      "text": "너는 천천히 이야기 들어줘.",
+      "topic": "새로 온 여우 작가",
+      "action": "서로 대화",
+      "at": 1790388686799,
+      "turn": 1275,
+      "step": 2
+    },
+    {
+      "npcId": "ai-mung",
+      "text": "여우 작가이 왔네. 따뜻한 자리를 내어줄까?",
+      "topic": "새로 온 여우 작가",
+      "action": "이야기 꺼내기",
+      "at": 1790388704210,
+      "turn": 1276,
+      "step": 0
+    },
+    {
+      "npcId": "ai-rabbit",
+      "text": "응, 쉬어 가는 모습도 이야기 같아.",
+      "topic": "새로 온 여우 작가",
+      "action": "서로 대화",
+      "at": 1790388708510,
+      "turn": 1276,
+      "step": 1
+    },
+    {
+      "npcId": "ai-mung",
+      "text": "너는 천천히 이야기 들어줘.",
+      "topic": "새로 온 여우 작가",
+      "action": "서로 대화",
+      "at": 1790388712810,
+      "turn": 1276,
+      "step": 2
+    },
+    {
+      "npcId": "ai-mung",
+      "text": "여우 작가이 왔네. 창가 쪽을 안내할까?",
+      "topic": "새로 온 여우 작가",
+      "action": "이야기 꺼내기",
+      "at": 1790388730221,
+      "turn": 1277,
+      "step": 0
+    },
+    {
+      "npcId": "ai-rabbit",
+      "text": "그래. 오늘의 방문을 기록해 둘게.",
+      "topic": "새로 온 여우 작가",
+      "action": "서로 대화",
+      "at": 1790388734521,
+      "turn": 1277,
+      "step": 1
+    },
+    {
+      "npcId": "ai-mung",
+      "text": "함께 맞이해 보자.",
+      "topic": "새로 온 여우 작가",
+      "action": "서로 대화",
+      "at": 1790388738821,
+      "turn": 1277,
+      "step": 2
+    },
+    {
+      "npcId": "ai-mung",
+      "text": "여우 작가이 왔네. 창가 쪽을 안내할까?",
+      "topic": "새로 온 여우 작가",
+      "action": "이야기 꺼내기",
+      "at": 1790388756228,
+      "turn": 1278,
+      "step": 0
+    },
+    {
+      "npcId": "ai-rabbit",
+      "text": "그래. 오늘의 방문을 기록해 둘게.",
+      "topic": "새로 온 여우 작가",
+      "action": "서로 대화",
+      "at": 1790388760528,
+      "turn": 1278,
+      "step": 1
+    },
+    {
+      "npcId": "ai-mung",
+      "text": "함께 맞이해 보자.",
+      "topic": "새로 온 여우 작가",
+      "action": "서로 대화",
+      "at": 1790388764828,
+      "turn": 1278,
+      "step": 2
+    },
+    {
+      "npcId": "ai-mung",
+      "text": "여우 작가이 왔네. 창가 쪽을 안내할까?",
+      "topic": "새로 온 여우 작가",
+      "action": "이야기 꺼내기",
+      "at": 1790388782234,
+      "turn": 1279,
+      "step": 0
+    },
+    {
+      "npcId": "ai-rabbit",
+      "text": "그래. 오늘의 방문을 기록해 둘게.",
+      "topic": "새로 온 여우 작가",
+      "action": "서로 대화",
+      "at": 1790388786534,
+      "turn": 1279,
+      "step": 1
+    },
+    {
+      "npcId": "ai-mung",
+      "text": "함께 맞이해 보자.",
+      "topic": "새로 온 여우 작가",
+      "action": "서로 대화",
+      "at": 1790388790834,
+      "turn": 1279,
+      "step": 2
+    },
+    {
+      "npcId": "ai-rabbit",
+      "text": "첫 문장을 지워 버렸어. 어떻게 다시 쓸까?",
+      "topic": "원고의 첫 문장",
+      "chapter": 1,
+      "action": "이야기 꺼내기",
+      "at": 1790388844108,
+      "turn": 1280,
+      "step": 0
+    },
+    {
+      "npcId": "ai-mung",
+      "text": "지우기 전에 가장 선명했던 장면이 뭐야?",
+      "topic": "원고의 첫 문장",
+      "chapter": 1,
+      "action": "서로 대화",
+      "at": 1790388848409,
+      "turn": 1280,
+      "step": 1
+    },
+    {
+      "npcId": "ai-rabbit",
+      "text": "비를 피해 온 손님이 웃던 모습이야.",
+      "topic": "원고의 첫 문장",
+      "chapter": 1,
+      "action": "서로 대화",
+      "at": 1790388852709,
+      "turn": 1280,
+      "step": 2
+    },
+    {
+      "npcId": "ai-rabbit",
+      "text": "아까 말한 손님은 왜 웃었던 것 같아?",
+      "topic": "원고의 첫 문장",
+      "chapter": 2,
+      "action": "이야기 꺼내기",
+      "at": 1790388870113,
+      "turn": 1281,
+      "step": 0
+    },
+    {
+      "npcId": "ai-mung",
+      "text": "그때는 몰랐어. 그래서 이야기가 멈췄어.",
+      "topic": "원고의 첫 문장",
+      "chapter": 2,
+      "action": "서로 대화",
+      "at": 1790388874413,
+      "turn": 1281,
+      "step": 1
+    },
+    {
+      "npcId": "ai-rabbit",
+      "text": "그 마음을 모른다는 사실부터 적어 보면 어때?",
+      "topic": "원고의 첫 문장",
+      "chapter": 2,
+      "action": "서로 대화",
+      "at": 1790388878713,
+      "turn": 1281,
+      "step": 2
+    },
+    {
+      "npcId": "ai-rabbit",
+      "text": "모른다고 적어 봤어. 다음 문장이 나올까?",
+      "topic": "원고의 첫 문장",
+      "chapter": 3,
+      "action": "이야기 꺼내기",
+      "at": 1790388896127,
+      "turn": 1282,
+      "step": 0
+    },
+    {
+      "npcId": "ai-mung",
+      "text": "그 손님이 앉았던 자리는 기억나?",
+      "topic": "원고의 첫 문장",
+      "chapter": 3,
+      "action": "서로 대화",
+      "at": 1790388900427,
+      "turn": 1282,
+      "step": 1
+    },
+    {
+      "npcId": "ai-rabbit",
+      "text": "응, 창가였어. 손에 젖은 편지가 있었지.",
+      "topic": "원고의 첫 문장",
+      "chapter": 3,
+      "action": "서로 대화",
+      "at": 1790388904727,
+      "turn": 1282,
+      "step": 2
+    },
+    {
+      "npcId": "ai-rabbit",
+      "text": "젖은 편지라면 손님에게 소중한 걸까?",
+      "topic": "원고의 첫 문장",
+      "chapter": 4,
+      "action": "이야기 꺼내기",
+      "at": 1790388922132,
+      "turn": 1283,
+      "step": 0
+    },
+    {
+      "npcId": "ai-mung",
+      "text": "그럴지도. 웃음 뒤에 걱정이 있었겠어.",
+      "topic": "원고의 첫 문장",
+      "chapter": 4,
+      "action": "서로 대화",
+      "at": 1790388926433,
+      "turn": 1283,
+      "step": 1
+    },
+    {
+      "npcId": "ai-rabbit",
+      "text": "그 두 마음을 함께 담아 보자.",
+      "topic": "원고의 첫 문장",
+      "chapter": 4,
+      "action": "서로 대화",
+      "at": 1790388930733,
+      "turn": 1283,
+      "step": 2
+    },
+    {
+      "npcId": "ai-rabbit",
+      "text": "이제 첫 문장을 썼어. 비와 웃음이 같이 있어.",
+      "topic": "원고의 첫 문장",
+      "chapter": 5,
+      "action": "이야기 꺼내기",
+      "at": 1790388948145,
+      "turn": 1284,
+      "step": 0
+    },
+    {
+      "npcId": "ai-mung",
+      "text": "어제 지웠던 때와는 어떻게 달라?",
+      "topic": "원고의 첫 문장",
+      "chapter": 5,
+      "action": "서로 대화",
+      "at": 1790388952445,
+      "turn": 1284,
+      "step": 1
+    },
+    {
+      "npcId": "ai-rabbit",
+      "text": "손님의 마음을 서둘러 정하지 않게 됐어.",
+      "topic": "원고의 첫 문장",
+      "chapter": 5,
+      "action": "서로 대화",
+      "at": 1790388956746,
+      "turn": 1284,
+      "step": 2
+    }
+  ],
+  "story": {
+    "arc": 0,
+    "stage": 5,
+    "summary": "",
+    "memories": []
+  },
+  "actors": {
+    "ai-mung": {
+      "mood": 100,
+      "energy": 100,
+      "xp": 2074,
+      "level": 104,
+      "relationship": 100,
+      "lastAction": "서로 대화"
+    },
+    "ai-rabbit": {
+      "mood": 100,
+      "energy": 20,
+      "xp": 1778,
+      "level": 89,
+      "relationship": 100,
+      "lastAction": "서로 대화"
+    }
+  }
+}
