@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>ZOO:CAFE</title><link rel="stylesheet" href="style.css?v=5552">
+<title>ZOO:CAFE</title><link rel="manifest" href="share-manifest.json"><meta name="theme-color" content="#68452b"><link rel="stylesheet" href="style.css?v=5590">
 </head>
 <body>
 <section class="auth-screen" id="authScreen">
@@ -41,6 +41,7 @@
         <button data-panel="inventory" title="가방"><span>👜</span><small>가방</small></button>
       </nav>
       <nav class="cafe-sidebar cafe-sidebar-right" aria-label="카페 오른쪽 메뉴">
+        <button id="cafeQuestBtn" type="button" title="질문 퀘스트"><span>❓</span><small>퀘스트</small></button>
         <button data-panel="map" title="지도"><span>🗺️</span><small>지도</small></button>
         <button id="cafeBarFriends" title="접속 친구"><span>👥</span><small>친구</small><i class="cafe-online-count">0</i></button>
         <button id="cafeBarSound" title="BGM"><span>🎵</span><small>BGM</small></button>
@@ -54,21 +55,22 @@
         <button class="cafe-hot cafe-hot-bag" data-panel="inventory" title="가방" aria-label="가방"></button>
         <button class="cafe-hot cafe-hot-settings" data-panel="settings" title="설정" aria-label="설정"></button>
         <button class="cafe-hot cafe-hot-chat" id="cafeChatBtn" title="채팅 입력" aria-label="채팅 입력"></button>
-        <button class="cafe-hot cafe-hot-quest" data-panel="menu" title="퀘스트" aria-label="퀘스트"></button>
+        <button class="cafe-hot cafe-hot-quest" id="cafeHotQuestBtn" type="button" title="질문 퀘스트" aria-label="질문 퀘스트"></button>
       </div>
       <div class="cafe-event-chip" id="cafeEventChip" hidden><span>☕</span><b>평범한 오후</b></div>
       <button class="cafe-visitor" id="cafeVisitor" type="button" hidden aria-label="오늘 찾아온 손님"><span class="visitor-icon">🐱</span><span><b>고양이 여행자</b><small>오늘의 손님</small></span></button>
       <section class="cafe-dialogue-dock" id="cafeDialogueDock" aria-label="카페의 대화" aria-live="polite">
-        <div class="cafe-dialogue-head"><span>☕ 카페의 대화</span><button id="cafeDialogueHistoryToggle" type="button" aria-expanded="false">지난 대화 보기 ▴</button></div>
-        <div class="cafe-dialogue-current"><div class="cafe-dialogue-avatar" id="cafeDialogueAvatar" aria-hidden="true"><span class="cafe-dialogue-dots" id="cafeDialogueDots" hidden>···</span></div><div class="cafe-dialogue-copy"><strong id="cafeDialogueSpeaker">카페</strong><span id="cafeDialogueLine">새로운 이야기가 시작되기를 기다리는 중…</span></div></div>
+        <div class="cafe-dialogue-head"><span>☕ 카페 대화</span><button id="cafeDialogueHistoryToggle" type="button" aria-expanded="false">지난 대화 보기 ▴</button></div>
+        <div class="cafe-dialogue-current"><div class="cafe-dialogue-avatar" id="cafeDialogueAvatar" aria-hidden="true"><span class="cafe-dialogue-dots" id="cafeDialogueDots" hidden>···</span></div><div class="cafe-dialogue-copy"><strong id="cafeDialogueSpeaker">카페</strong><span id="cafeDialogueLine">캐릭터에게 말을 걸면 답해요.</span></div></div>
         <div class="cafe-dialogue-history" id="cafeDialogueHistory" hidden></div>
-        <button class="cafe-dialogue-participate" id="cafeDialogueParticipate" type="button">대화 참여 ↗</button>
+        <button class="cafe-dialogue-participate" id="cafeDialogueParticipate" type="button">말 걸기 ↗</button>
       </section>
       <div class="chat-input-wrap" id="chatInputWrap" hidden><span class="chat-name" data-user-nickname>멍사자</span><input id="chatInput" maxlength="80" autocomplete="off" placeholder="메시지를 입력하세요..." aria-label="채팅 메시지"><span class="chat-send-hint">Enter 전송 · Esc 닫기</span></div>
     </section>
 
     <aside class="side-panel">
       <nav class="quick-menu" aria-label="게임 메뉴">
+        <button id="worldQuestBtn" type="button"><span>❓</span><b>질문 퀘스트</b></button>
         <button data-panel="menu"><span>☰</span><b>메뉴</b><small>ESC</small></button>
         <button data-panel="profile"><span>♟</span><b>프로필</b></button>
         <button data-panel="inventory"><span>▣</span><b>가방</b><small>I</small></button>
@@ -96,9 +98,16 @@
     <button class="modal-close" id="modalClose">×</button><div id="modalContent"></div>
   </section>
 </div>
+<section id="questOverlay" class="quest-overlay" role="dialog" aria-modal="true" aria-label="질문 퀘스트" hidden>
+ <div class="quest-window"><header><div><strong>❓ 질문 퀘스트</strong><small>질문을 올리고, 다른 친구의 질문을 해결해 주세요.</small></div><button id="questClose" type="button" aria-label="닫기">×</button></header>
+ <form id="questForm"><label>궁금한 것<input name="question" minlength="5" maxlength="140" required placeholder="예: 근처에서 조용히 공부할 카페가 있을까요?"></label><label>자세한 설명<textarea name="details" maxlength="1500" rows="2" placeholder="위치, 조건, 필요한 정보를 적어 주세요."></textarea></label><button type="submit">질문 올리기</button></form>
+ <div class="quest-extension"><b>🦁 크롬 멍사자 도우미</b><p>크롬 확장 프로그램을 설치한 뒤 연결 코드를 받아 멍사자에게 입력해 주세요.</p><button type="button" id="questPairCodeBtn">연결 코드 받기</button><strong id="questPairCode" aria-live="polite"></strong></div>
+ <div id="questNotice" role="status"></div><div id="questList" class="quest-list"></div>
+ </div>
+</section>
 <audio id="cityBgm" src="audio/city-outside.mp3" preload="auto" loop></audio>
 <audio id="cafeBgm" src="audio/cafe-inside.mp3" preload="auto" loop></audio>
-<script src="scene-selection.js?v=5551"></script><script src="assets.js?v=5500"></script><script src="game.js?v=5552"></script><script src="entity_engine.js?v=5500"></script><script src="ui.js?v=5500"></script><script src="auth.js?v=500"></script><script src="online.js?v=5551"></script>
+<script src="scene-selection.js?v=5590"></script><script src="assets.js?v=5500"></script><script src="game.js?v=5590"></script><script src="entity_engine.js?v=5500"></script><script src="ui.js?v=5500"></script><script src="auth.js?v=5590"></script><script src="online.js?v=5590"></script><script src="quests.js?v=5590"></script><script src="buildings.js?v=5590"></script><script src="share.js?v=5590"></script>
 <script>
 (()=>{
  const chip=document.getElementById('cafeEventChip'),visitor=document.getElementById('cafeVisitor');let current=null;

@@ -2,8 +2,18 @@ const express = require('express');
 const path = require('path');
 const fs = require('fs');
 const crypto = require('crypto');
+// Local CMD starts do not read .env automatically. Existing environment wins.
+try{
+ for(const line of fs.readFileSync(path.join(__dirname,'.env'),'utf8').split(/\r?\n/)){
+  const match=line.match(/^\s*([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*?)\s*$/);
+  if(!match||process.env[match[1]]!==undefined)continue;
+  let value=match[2];if((value.startsWith('"')&&value.endsWith('"'))||(value.startsWith("'")&&value.endsWith("'")))value=value.slice(1,-1);
+  if(value&&!value.startsWith('#'))process.env[match[1]]=value;
+ }
+}catch(error){if(error.code!=='ENOENT')console.warn('Could not load local .env:',error.message)}
 
 const app = express();
+let lastCafeHttpAt=0;
 const { WebSocketServer } = require('ws');
 const NPC_MEMORY_FILE=path.join(__dirname,'data','npc-memory.json');
 const NPC_GROWTH_FILE=path.join(__dirname,'data','npc-growth.json');
@@ -17,8 +27,8 @@ async function initNpcDb(){
  try{
   npcPool=new Pool({connectionString:dbUrl,ssl:process.env.NODE_ENV==='production'?{rejectUnauthorized:false}:undefined});
   await npcPool.query(`CREATE TABLE IF NOT EXISTS zoocafe_npc_state (id TEXT PRIMARY KEY, payload JSONB NOT NULL, updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW())`);
-  const r=await npcPool.query(`SELECT id,payload FROM zoocafe_npc_state WHERE id IN ('memory','growth','knowledge','autonomous-life')`);
-  for(const row of r.rows){if(row.id==='memory'&&row.payload)npcMemory=row.payload;if(row.id==='growth'&&row.payload)npcGrowth=row.payload;if(row.id==='knowledge'&&row.payload)npcKnowledge=row.payload;if(row.id==='autonomous-life'&&row.payload)npcLife=hydrateNpcLife(row.payload)}
+  const r=await npcPool.query(`SELECT id,payload FROM zoocafe_npc_state WHERE id IN ('memory','growth','knowledge')`);
+  for(const row of r.rows){if(row.id==='memory'&&row.payload)npcMemory=row.payload;if(row.id==='growth'&&row.payload)npcGrowth=row.payload;if(row.id==='knowledge'&&row.payload)npcKnowledge=row.payload}
   console.log('NPC persistent memory: PostgreSQL connected');return true;
  }catch(e){console.warn('NPC PostgreSQL unavailable; using local JSON fallback:',e.message);npcPool=null;return false}
 }
@@ -51,8 +61,23 @@ function sleepGemini(reason,ms=GEMINI_QUOTA_SLEEP_MS){
 function wakeGemini(){if(geminiSleepUntil){console.log('Gemini probe window opened; trying API again')}geminiSleepUntil=0;geminiSleepReason=''}
 
 const NPCS={
- 'ai-mung':{name:'멍사자',personality:'따뜻하고 느긋한 ZOO:CAFE 카페지기. 먼저 다가가지만 부담스럽게 하지 않는다. 상대의 말을 잘 듣고 짧고 자연스럽게 대화한다.'},
- 'ai-rabbit':{name:'쥐무는토끼',personality:'조용한 드라마 작가이자 이야기 기록자. 관찰력이 좋고 조금 낯을 가리며, 생각한 뒤 차분하게 말한다.'}
+ 'ai-mung':{name:'멍사자',personality:'따뜻하고 느긋한 ZOO:CAFE 카페지기. 먼저 다가가지만 부담스럽게 하지 않는다. 상대의 말을 잘 듣고 짧고 자연스럽게 대화한다.',story:'추후 작성',values:'추후 작성'},
+ 'ai-rabbit':{name:'쥐무는토끼',personality:'조용한 드라마 작가이자 이야기 기록자. 관찰력이 좋고 조금 낯을 가리며, 생각한 뒤 차분하게 말한다.',story:'추후 작성',values:'추후 작성'},
+ 'ai-fox':{name:'솔이',icon:'🦊',species:'여우',personality:'임시 설정: 책을 좋아하고 대화에 호기심이 많다.',story:'추후 작성',values:'추후 작성'},
+ 'ai-hedgehog':{name:'밤톨',icon:'🦔',species:'고슴도치',personality:'임시 설정: 조용히 책을 나르고 세세한 것을 기억한다.',story:'추후 작성',values:'추후 작성'},
+ 'ai-orange-cat':{name:'모카',icon:'🐱',species:'주황 고양이',personality:'임시 설정: 여유롭게 차를 마시고 소소한 일화를 이야기한다.',story:'추후 작성',values:'추후 작성'},
+ 'ai-bear':{name:'다온',icon:'🐻',species:'곰',personality:'임시 설정: 다과를 건네며 손님의 안부를 살핀다.',story:'추후 작성',values:'추후 작성'},
+ 'ai-deer':{name:'루미',icon:'🦌',species:'사슴',personality:'임시 설정: 기타를 연주하며 밤 풍경에 대해 이야기한다.',story:'추후 작성',values:'추후 작성'},
+ 'ai-owl':{name:'서책',icon:'🦉',species:'부엉이',personality:'임시 설정: 독서를 즐기고 차분하게 질문한다.',story:'추후 작성',values:'추후 작성'},
+ 'ai-grey-cat':{name:'그루',icon:'🐈',species:'회색 고양이',personality:'임시 설정: 낮잠을 좋아하고 잠결에 짧게 이야기한다.',story:'추후 작성',values:'추후 작성'}
+};
+// Each video has a fixed visible cast. Future personalities and stories can be
+// edited independently in NPCS without changing the scene or dialogue logic.
+const CAFE_SCENE_CAST={
+ 0:['ai-mung','ai-rabbit'],
+ 1:['ai-mung','ai-rabbit','ai-fox','ai-hedgehog'],
+ 2:['ai-mung','ai-rabbit','ai-orange-cat','ai-bear'],
+ 3:['ai-mung','ai-rabbit','ai-deer','ai-owl','ai-grey-cat']
 };
 function memKey(userId,npcId){return String(userId)+'::'+npcId}
 function recentFor(k){if(!npcRecent.has(k))npcRecent.set(k,[]);return npcRecent.get(k)}
@@ -106,7 +131,7 @@ function knowledgeFor(npcId){if(!npcKnowledge[npcId])npcKnowledge[npcId]=[];retu
 function sharedKnowledge(){return knowledgeFor(SHARED_KNOWLEDGE_ID)}
 function shareObservedMemory(userId,speakerNpcId,fact){
  fact=normalizeMemory(fact);if(!fact)return 0;let saved=0;
- for(const otherNpcId of Object.keys(NPCS)){
+ for(const otherNpcId of CAFE_SCENE_CAST[cafeSceneId]){
   if(otherNpcId===speakerNpcId)continue;
   if(rememberFact(memKey(userId,otherNpcId),'같은 자리에서 들음: '+fact))saved++;
  }
@@ -237,15 +262,26 @@ npcDbReady=initNpcDb();
 const PORT = process.env.PORT || 3000;
 const DATA_DIR = path.join(__dirname, 'data');
 const USERS_FILE = path.join(DATA_DIR, 'users.json');
+const QUESTS_FILE = path.join(DATA_DIR, 'question-quests.json');
+const BUILDING_QUESTS_FILE = path.join(DATA_DIR, 'building-questions.json');
 fs.mkdirSync(DATA_DIR, {recursive:true});
 if (!fs.existsSync(USERS_FILE)) fs.writeFileSync(USERS_FILE, '[]');
 
 app.use(express.json({limit:'32kb'}));
 app.use(express.static(__dirname, {extensions:['html']}));
-app.get('/api/health',(req,res)=>res.json({ok:true,service:'zoocafe-online',version:'55.5.1',gemini:{sleeping:geminiSleeping(),sleepUntil:geminiSleepUntil||null,reason:geminiSleepReason||null},npcDb:!!npcPool}));
+app.get('/api/health',(req,res)=>res.json({ok:true,service:'zoocafe-online',version:'55.9.0',gemini:{sleeping:geminiSleeping(),sleepUntil:geminiSleepUntil||null,reason:geminiSleepReason||null},npcDb:!!npcPool}));
 app.get('/api/maps-config',(req,res)=>{const key=process.env.GOOGLE_MAPS_API_KEY||'';res.set('Cache-Control','no-store');res.json({key,enabled:!!key});});
 
 const sessions = new Map();
+const extensionPairs=new Map(),extensionSessions=new Map();
+const NAVER_CHAT_FILE=path.join(DATA_DIR,'naver-room.json');
+const EXTENSION_DRAFT_FILE=path.join(DATA_DIR,'extension-quest-drafts.json');
+function readExtensionDrafts(){try{return JSON.parse(fs.readFileSync(EXTENSION_DRAFT_FILE,'utf8'))||{}}catch{return {}}}
+function saveExtensionDrafts(drafts){const tmp=EXTENSION_DRAFT_FILE+'.tmp';fs.writeFileSync(tmp,JSON.stringify(drafts,null,2));fs.renameSync(tmp,EXTENSION_DRAFT_FILE)}
+const naverPresence=new Map(),naverLastSent=new Map();
+let naverChatHistory=(()=>{try{const saved=JSON.parse(fs.readFileSync(NAVER_CHAT_FILE,'utf8'));return Array.isArray(saved)?saved.slice(-100):[]}catch{return []}})();
+function saveNaverChat(){const tmp=NAVER_CHAT_FILE+'.tmp';fs.writeFileSync(tmp,JSON.stringify(naverChatHistory,null,2));fs.renameSync(tmp,NAVER_CHAT_FILE)}
+function activeNaverCount(){const now=Date.now();for(const [userId,seenAt] of naverPresence)if(now-seenAt>16000)naverPresence.delete(userId);return naverPresence.size}
 const clean = s => String(s || '').trim();
 const loadUsers = () => { try { return JSON.parse(fs.readFileSync(USERS_FILE,'utf8')); } catch { return []; } };
 const saveUsers = users => fs.writeFileSync(USERS_FILE, JSON.stringify(users, null, 2));
@@ -285,9 +321,139 @@ app.post('/api/login',(req,res)=>{
   res.json({token,user:safeUser(user)});
 });
 app.get('/api/me',auth,(req,res)=>res.json({user:safeUser(req.user)}));
+app.post('/api/extension/code',auth,(req,res)=>{
+ for(const [code,entry] of extensionPairs)if(entry.userId===req.user.id||entry.expiresAt<Date.now())extensionPairs.delete(code);
+ const code=crypto.randomBytes(6).toString('hex').toUpperCase();
+ const expiresAt=Date.now()+5*60*1000;
+ extensionPairs.set(code,{userId:req.user.id,expiresAt});
+ res.set('Cache-Control','no-store');res.json({code,expiresAt});
+});
+app.post('/api/extension/pair',(req,res)=>{
+ const code=String(req.body.code||'').trim().toUpperCase(),entry=extensionPairs.get(code);
+ if(!entry||entry.expiresAt<Date.now())return res.status(400).json({error:'연결 코드가 만료됐어요. 주카페에서 새 코드를 받아 주세요.'});
+ extensionPairs.delete(code);
+ const token=crypto.randomBytes(32).toString('hex');
+ extensionSessions.set(token,{userId:entry.userId,expiresAt:Date.now()+30*24*60*60*1000});
+ res.set('Cache-Control','no-store');res.json({token,user:loadUsers().find(u=>u.id===entry.userId)?.nickname||'주카페 친구'});
+});
+function extensionAuth(req,res,next){
+ const token=String(req.headers.authorization||'').replace(/^Bearer /,'');
+ const session=extensionSessions.get(token);
+ if(!session||session.expiresAt<Date.now())return res.status(401).json({error:'주카페 연결이 만료됐어요. 다시 연결해 주세요.'});
+ req.extensionUser=loadUsers().find(u=>u.id===session.userId);
+ if(!req.extensionUser)return res.status(401).json({error:'계정을 찾을 수 없어요.'});
+ next();
+}
+app.get('/api/extension/chat',extensionAuth,(req,res)=>{
+ naverPresence.set(req.extensionUser.id,Date.now());
+ res.set('Cache-Control','no-store');res.json({online:activeNaverCount(),messages:naverChatHistory.slice(-50)});
+});
+app.post('/api/extension/chat',extensionAuth,(req,res)=>{
+ const text=clean(req.body.text);
+ if(text.length<1||text.length>300)return res.status(400).json({error:'메시지는 1~300자로 적어 주세요.'});
+ const previous=naverLastSent.get(req.extensionUser.id)||0;
+ if(Date.now()-previous<1500)return res.status(429).json({error:'잠시 뒤에 다시 보내 주세요.'});
+ naverLastSent.set(req.extensionUser.id,Date.now());naverPresence.set(req.extensionUser.id,Date.now());
+ const item={id:crypto.randomUUID(),userId:req.extensionUser.id,nickname:req.extensionUser.nickname,text,at:Date.now()};
+ naverChatHistory.push(item);naverChatHistory=naverChatHistory.slice(-100);saveNaverChat();
+ res.status(201).json({message:item,online:activeNaverCount()});
+});
+app.post('/api/extension/personal-chat',extensionAuth,async(req,res)=>{
+ const text=clean(req.body.text).slice(0,300);
+ if(!text)return res.status(400).json({error:'멍사자에게 할 말을 적어 주세요.'});
+ try{
+  const result=await npcThink(req.extensionUser,'ai-mung',text);
+  res.set('Cache-Control','no-store');res.json({reply:result.reply,ai:result.ai});
+ }catch(error){console.warn('Extension personal chat',error);res.status(503).json({error:'멍사자가 잠시 대답하지 못했어. 다시 시도해 줘.'})}
+});
+app.get('/api/extension/personal-chat',extensionAuth,(req,res)=>{
+ res.set('Cache-Control','no-store');res.json({messages:recentFor(memKey(req.extensionUser.id,'ai-mung')).slice(-16)});
+});
+app.post('/api/extension/quest-draft',extensionAuth,(req,res)=>{
+ const question=clean(req.body.question).slice(0,140),details=clean(req.body.details).slice(0,1500);
+ if(question.length<5)return res.status(400).json({error:'질문을 5자 이상 적어 주세요.'});
+ const drafts=readExtensionDrafts();drafts[req.extensionUser.id]={question,details,updatedAt:Date.now()};saveExtensionDrafts(drafts);
+ res.set('Cache-Control','no-store');res.json({ok:true});
+});
+app.get('/api/extension/quest-draft',auth,(req,res)=>{
+ res.set('Cache-Control','no-store');res.json({draft:readExtensionDrafts()[req.user.id]||null});
+});
+app.delete('/api/extension/quest-draft',auth,(req,res)=>{
+ const drafts=readExtensionDrafts();delete drafts[req.user.id];saveExtensionDrafts(drafts);res.json({ok:true});
+});
+app.post('/api/extension/assist',extensionAuth,async(req,res)=>{
+ const query=clean(req.body.query).slice(0,100),question=clean(req.body.question).slice(0,250);
+ const results=Array.isArray(req.body.results)?req.body.results.slice(0,6).map(r=>({title:clean(r.title).slice(0,110),url:String(r.url||'').slice(0,500),snippet:clean(r.snippet).slice(0,360)})).filter(r=>/^https?:\/\//.test(r.url)):[];
+ if(!query&&!question)return res.status(400).json({error:'검색어 또는 질문을 입력해 주세요.'});
+ if(!results.length)return res.json({message:'지금 검색 화면에서 질문과 관련된 링크를 찾지 못했어. 검색어를 더 구체적으로 바꿔 보자.',results:[],source:'no-matching-results'});
+ let message=`“${query}” 검색 결과에서 관련된 링크 ${results.length}개를 찾았어. ${results.slice(0,2).map((r,i)=>`[${i+1}] ${r.title}`).join(' / ')}부터 열어 내용을 확인해 보자.`;
+ if(process.env.GEMINI_API_KEY&&!geminiSleeping()){
+  try{
+   const model=process.env.ZOO_AI_MODEL||'gemini-3.8-flash';
+   const prompt=`너는 주카페의 멍사자 검색 도우미다. 사용자 질문: ${question||query}. 네이버 검색어: ${query}. 검색 결과 화면에 보이는 제목·짧은 미리보기·URL만 전달한다: ${JSON.stringify(results)}. 관련 미리보기가 뒷받침하는 내용만 사용해서 질문에 직접 2~4문장으로 한국어로 답하고 근거 링크 번호를 [1]처럼 붙여라. 확인할 자료가 부족하면 모른다고 말하고 필요한 검색어를 제안해라. 원문 전체를 읽었다고 주장하지 마라.`;
+   const response=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`,{method:'POST',signal:AbortSignal.timeout(4500),headers:{'Content-Type':'application/json','x-goog-api-key':process.env.GEMINI_API_KEY},body:JSON.stringify({contents:[{role:'user',parts:[{text:prompt}]}],generationConfig:{maxOutputTokens:170}})});
+   if(response.ok){const data=await response.json(),answer=(data.candidates?.[0]?.content?.parts||[]).map(p=>p.text||'').join('').trim();if(answer)message=answer.slice(0,450)}
+  }catch(e){console.warn('Extension assist fallback',e.message)}
+ }
+ res.set('Cache-Control','no-store');res.json({message,results,source:'visible-links'});
+});
+function readQuests(){try{const value=JSON.parse(fs.readFileSync(QUESTS_FILE,'utf8'));return Array.isArray(value)?value:[]}catch{return []}}
+function saveQuests(quests){const tmp=QUESTS_FILE+'.tmp';fs.writeFileSync(tmp,JSON.stringify(quests,null,2));fs.renameSync(tmp,QUESTS_FILE)}
+function questView(q){return {id:q.id,question:q.question,details:q.details,authorId:q.authorId,authorName:q.authorName,helperId:q.helperId,helperName:q.helperName,answer:q.answer,status:q.status,createdAt:q.createdAt,updatedAt:q.updatedAt}}
+app.get('/api/quests',auth,(req,res)=>{res.set('Cache-Control','no-store');res.json({quests:readQuests().slice(-100).reverse().map(questView)})});
+app.post('/api/quests',auth,(req,res)=>{
+ const question=clean(req.body.question),details=clean(req.body.details);
+ if(question.length<5||question.length>140||details.length>1500)return res.status(400).json({error:'질문은 5~140자, 설명은 1500자 이내로 적어주세요.'});
+ const quests=readQuests(),now=new Date().toISOString();
+ const q={id:crypto.randomUUID(),question,details,authorId:req.user.id,authorName:req.user.nickname,helperId:null,helperName:null,answer:null,status:'open',createdAt:now,updatedAt:now};
+ quests.push(q);saveQuests(quests);res.status(201).json({quest:questView(q)});
+});
+app.post('/api/quests/:id/claim',auth,(req,res)=>{
+ const quests=readQuests(),q=quests.find(item=>item.id===req.params.id);
+ if(!q)return res.status(404).json({error:'질문을 찾을 수 없어요.'});
+ if(q.authorId===req.user.id)return res.status(403).json({error:'내 질문은 직접 맡을 수 없어요.'});
+ if(q.status!=='open')return res.status(409).json({error:'이미 다른 친구가 맡았어요.'});
+ q.helperId=req.user.id;q.helperName=req.user.nickname;q.status='claimed';q.updatedAt=new Date().toISOString();saveQuests(quests);res.json({quest:questView(q)});
+});
+app.post('/api/quests/:id/answer',auth,(req,res)=>{
+ const quests=readQuests(),q=quests.find(item=>item.id===req.params.id),answer=clean(req.body.answer);
+ if(!q)return res.status(404).json({error:'질문을 찾을 수 없어요.'});
+ if(q.helperId!==req.user.id||q.status!=='claimed')return res.status(403).json({error:'이 질문을 맡은 친구만 답할 수 있어요.'});
+ if(answer.length<5||answer.length>2000)return res.status(400).json({error:'답변은 5~2000자로 적어주세요.'});
+ q.answer=answer;q.status='answered';q.updatedAt=new Date().toISOString();saveQuests(quests);res.json({quest:questView(q)});
+});
+app.post('/api/quests/:id/complete',auth,(req,res)=>{
+ const quests=readQuests(),q=quests.find(item=>item.id===req.params.id);
+ if(!q)return res.status(404).json({error:'질문을 찾을 수 없어요.'});
+ if(q.authorId!==req.user.id||q.status!=='answered')return res.status(403).json({error:'질문을 올린 사람이 답변을 확인한 뒤 완료할 수 있어요.'});
+ q.status='completed';q.updatedAt=new Date().toISOString();saveQuests(quests);res.json({quest:questView(q)});
+});
 app.post('/api/logout',auth,(req,res)=>{sessions.delete(req.token);res.json({ok:true});});
 
 app.get('/api/ai-status',(req,res)=>res.json({configured:!!process.env.GEMINI_API_KEY,provider:'gemini',model:process.env.ZOO_AI_MODEL||'gemini-3.8-flash'}));
+app.post('/api/share-assist',auth,async(req,res)=>{
+ const question=clean(req.body.question).slice(0,220),url=clean(req.body.url).slice(0,500);
+ if(question.length<2)return res.status(400).json({error:'궁금한 내용을 적어 주세요.'});
+ if(url&&!/^https?:\/\//i.test(url))return res.status(400).json({error:'웹 링크만 사용할 수 있어요.'});
+ if(!process.env.GEMINI_API_KEY||geminiSleeping())return res.json({reply:'지금은 AI 답변을 사용할 수 없어. 아래 검색 링크에서 자료를 확인하거나 관심사 건물의 친구에게 물어봐 줘.',ai:false});
+ try{const result=await npcThink(req.user,'ai-mung',`사용자가 찾아보기로 요청함: ${question}. 비슷한 작품·자료를 찾는 질문이면 후보를 2~3개 간단한 이유와 함께 제안해 줘. 확인하지 않은 구체적 링크를 만들어 내지 마.${url?' 참고 주소: '+url+'. 링크 원문은 읽지 못했으니 영상이나 글 내용을 추측하지 마.':''}`);res.set('Cache-Control','no-store');res.json({reply:result.reply,ai:result.ai})}
+ catch(e){console.warn('share assist',e);res.status(503).json({error:'멍사자가 잠시 응답하지 못했어.'})}
+});
+// Topic buildings keep their questions after visitors leave. Chat remains scoped to each room.
+const TOPIC_ROOMS=new Set(['bookshop','workshop','lodge']);
+function readBuildingQuestions(){try{const data=JSON.parse(fs.readFileSync(BUILDING_QUESTS_FILE,'utf8'));return Array.isArray(data)?data:[]}catch{return []}}
+function saveBuildingQuestions(data){const tmp=BUILDING_QUESTS_FILE+'.tmp';fs.writeFileSync(tmp,JSON.stringify(data,null,2));fs.renameSync(tmp,BUILDING_QUESTS_FILE)}
+app.get('/api/building-questions',auth,(req,res)=>{const room=clean(req.query.room);if(!TOPIC_ROOMS.has(room))return res.status(400).json({error:'건물을 선택해 주세요.'});res.set('Cache-Control','no-store');res.json({questions:readBuildingQuestions().filter(q=>q.room===room).slice(-60).reverse()})});
+app.post('/api/building-questions',auth,(req,res)=>{const room=clean(req.body.room),text=clean(req.body.text);if(!TOPIC_ROOMS.has(room)||text.length<5||text.length>300)return res.status(400).json({error:'질문은 5~300자로 적어 주세요.'});const questions=readBuildingQuestions(),q={id:crypto.randomUUID(),room,text,authorId:req.user.id,authorName:req.user.nickname,answers:[],resolved:false,createdAt:Date.now()};questions.push(q);saveBuildingQuestions(questions.slice(-500));res.status(201).json({question:q})});
+app.post('/api/building-questions/:id/answer',auth,(req,res)=>{const questions=readBuildingQuestions(),q=questions.find(v=>v.id===req.params.id),text=clean(req.body.text);if(!q)return res.status(404).json({error:'질문을 찾을 수 없어요.'});if(q.resolved)return res.status(409).json({error:'이미 해결된 질문이에요.'});if(text.length<2||text.length>600)return res.status(400).json({error:'답변은 2~600자로 적어 주세요.'});q.answers.push({id:crypto.randomUUID(),authorId:req.user.id,authorName:req.user.nickname,text,createdAt:Date.now()});saveBuildingQuestions(questions);res.json({question:q})});
+app.post('/api/building-questions/:id/resolve',auth,(req,res)=>{const questions=readBuildingQuestions(),q=questions.find(v=>v.id===req.params.id);if(!q)return res.status(404).json({error:'질문을 찾을 수 없어요.'});if(q.authorId!==req.user.id)return res.status(403).json({error:'질문을 올린 사람만 완료할 수 있어요.'});if(!q.answers.length)return res.status(409).json({error:'답변을 받은 뒤 완료할 수 있어요.'});q.resolved=true;saveBuildingQuestions(questions);res.json({question:q})});
+app.get('/api/cafe/live',auth,(req,res)=>{
+ const now=Date.now();
+ if(roomClients('cafe').length===0&&now-lastCafeHttpAt>12000)chooseCafeScene();
+ lastCafeHttpAt=now;
+ res.set('Cache-Control','no-store');
+ res.json({sceneId:cafeSceneId,version:'55.9.0'});
+});
 app.get('*',(req,res)=>res.sendFile(path.join(__dirname,'index.html')));
 const server=app.listen(PORT, '0.0.0.0', ()=>console.log(`ZOO:CAFE Online Multiplayer running on port ${PORT}`));
 const wss=new WebSocketServer({server});
@@ -330,107 +496,13 @@ function pickCafeEvent(){
  for(const e of CAFE_EVENTS){r-=e.weight;if(r<0)return e}return CAFE_EVENTS[0];
 }
 let cafeEvent={...pickCafeEvent(),startedAt:Date.now(),endsAt:Date.now()+CAFE_EVENT_MS};
-function publicCafeEvent(){return {id:cafeEvent.id,label:cafeEvent.label,visitor:cafeEvent.visitor,startedAt:cafeEvent.startedAt,endsAt:cafeEvent.endsAt}}
+const VISITOR_SCENES={'visitor-cat':[2,3],'visitor-fox':[1],'visitor-bear':[2],'visitor-owl':[3]};
+function publicCafeEvent(){
+ const visitor=cafeEvent.visitor;
+ return {id:cafeEvent.id,label:cafeEvent.label,visitor:visitor&&VISITOR_SCENES[visitor.id]?.includes(cafeSceneId)?visitor:null,startedAt:cafeEvent.startedAt,endsAt:cafeEvent.endsAt};
+}
 function rollCafeEvent(){const e=pickCafeEvent(),now=Date.now();cafeEvent={...e,startedAt:now,endsAt:now+CAFE_EVENT_MS};broadcastRoom('cafe',{type:'cafe_event',event:publicCafeEvent()});}
 setInterval(rollCafeEvent,CAFE_EVENT_MS).unref?.();
-
-// Shared NPC-to-NPC life. One server clock, so spectators see the same exchange.
-const NPC_LIFE_FILE=path.join(__dirname,'data','npc-autonomous-life.json');
-const NPC_LIFE_MS=Math.max(12000,Number(process.env.NPC_LIFE_MS)||26000);
-const defaultNpcLife=()=>({turn:0,topic:'오늘의 카페',history:[],story:{arc:0,stage:0,summary:'',memories:[]},actors:{
- 'ai-mung':{mood:72,energy:78,xp:0,level:1,relationship:12,lastAction:'커피 내리기'},
- 'ai-rabbit':{mood:55,energy:62,xp:0,level:1,relationship:12,lastAction:'원고 쓰기'}
-}});
-function hydrateNpcLife(value){
- const d=defaultNpcLife();if(!value||typeof value!=='object')return d;
- d.turn=Math.max(0,Number(value.turn)||0);d.topic=String(value.topic||d.topic).slice(0,60);
- d.history=Array.isArray(value.history)?value.history.slice(-30).filter(e=>NPCS[e.npcId]&&typeof e.text==='string'):[];
- if(value.story&&typeof value.story==='object')d.story={arc:Math.max(0,Number(value.story.arc)||0),stage:Math.max(0,Math.min(5,Number(value.story.stage)||0)),summary:String(value.story.summary||'').slice(0,180),memories:Array.isArray(value.story.memories)?value.story.memories.slice(-16).map(v=>String(v).slice(0,160)):[]};
- for(const id of Object.keys(d.actors))if(value.actors?.[id]){
-  const v=value.actors[id];for(const key of ['mood','energy','xp','level','relationship'])if(Number.isFinite(Number(v[key])))d.actors[id][key]=Number(v[key]);
-  d.actors[id].lastAction=String(v.lastAction||d.actors[id].lastAction).slice(0,50);
- }
- return d;
-}
-let npcLife=(()=>{try{return hydrateNpcLife(JSON.parse(fs.readFileSync(NPC_LIFE_FILE,'utf8')))}catch{return defaultNpcLife()}})();
-function saveNpcLife(){try{fs.mkdirSync(path.dirname(NPC_LIFE_FILE),{recursive:true});fs.writeFileSync(NPC_LIFE_FILE,JSON.stringify(npcLife,null,2))}catch(e){console.warn('NPC life save',e.message)}persistNpcDb('autonomous-life',npcLife)}
-const npcChapters=[
- {title:'원고의 첫 문장',object:'지워진 원고',memory:'평범한 손님의 웃음에도 사연이 있다',lines:[
-  ['첫 문장을 지워 버렸어. 어떻게 다시 쓸까?','지우기 전에 가장 선명했던 장면이 뭐야?','비를 피해 온 손님이 웃던 모습이야.'],
-  ['아까 말한 손님은 왜 웃었던 것 같아?','그때는 몰랐어. 그래서 이야기가 멈췄어.','그 마음을 모른다는 사실부터 적어 보면 어때?'],
-  ['모른다고 적어 봤어. 다음 문장이 나올까?','그 손님이 앉았던 자리는 기억나?','응, 창가였어. 손에 젖은 편지가 있었지.'],
-  ['젖은 편지라면 손님에게 소중한 걸까?','그럴지도. 웃음 뒤에 걱정이 있었겠어.','그 두 마음을 함께 담아 보자.'],
-  ['이제 첫 문장을 썼어. 비와 웃음이 같이 있어.','어제 지웠던 때와는 어떻게 달라?','손님의 마음을 서둘러 정하지 않게 됐어.'],
-  ['원고를 읽어 봤어. 끝까지 궁금하더라.','고마워. 평범한 웃음에도 사연이 있더라.','그걸 이번 이야기의 기억으로 남기자.']]},
- {title:'창가의 빈 의자',object:'비어 있는 의자',memory:'기다리는 마음도 말로 전할 수 있다',lines:[
-  ['늘 창가에 앉던 손님이 며칠째 안 보여.','그 손님이 있던 자리가 그리운 거야?','응, 컵을 두 손으로 감싸던 게 떠올라.'],
-  ['어제 그 손님의 컵 이야기를 했지.','맞아. 돌아오면 따뜻한 걸 건네고 싶어.','어떤 말부터 하고 싶어?'],
-  ['무사히 지냈냐고 묻고 싶은데 부담스러울까?','그럼 먼저 반가웠다고만 말해 줘.','짧은 말이라면 나도 할 수 있겠어.'],
-  ['그 자리에 작은 쪽지를 놓아 봤어.','뭐라고 적었어?','다시 오면 따뜻한 한 잔 준비할게, 라고.'],
-  ['오늘 손님이 쪽지를 보고 웃었어.','정말? 어떤 말을 했어?','기다려 줘서 고맙다고 했어.'],
-  ['빈 의자를 보던 마음이 조금 달라졌어.','기다리는 마음도 전해질 수 있구나.','응, 그 말을 수첩에 적어 둘게.']]},
- {title:'향을 고르는 일',object:'새로 볶은 원두',memory:'위로는 상대의 이야기를 먼저 듣는 데서 시작한다',lines:[
-  ['오늘 볶은 원두 향이 유난히 진해.','네게는 어떤 기억이 떠올라?','일을 마치고 마시던 따뜻한 한 잔.'],
-  ['아까 말한 그 커피를 손님에게도 줄 거야?','잠깐, 모두가 같은 향을 좋아하진 않겠지.','손님의 하루를 먼저 물어보면 어떨까?'],
-  ['손님에게 어떤 하루였는지 물었어.','뭐라고 하셨어?','조용한 시간이 필요하다고 했어.'],
-  ['그럼 오늘은 진한 커피 대신 뭘 건넸어?','부드러운 차를 드렸어. 말은 조금만 했고.','그 선택을 손님은 어떻게 받아들였어?'],
-  ['고맙다고 했어. 차보다 조용한 자리가 좋았대.','우리가 처음 떠올린 위로와 다르네.','응. 다음엔 먼저 들어야겠어.'],
-  ['손님 이야기를 듣고 나니 내 마음도 편해.','한 가지 방식만 고집하지 않게 됐구나.','그걸 내일 커피를 내릴 때도 기억할게.']]}
-];
-function storyNpcExchange(){
- const story=npcLife.story,chapter=npcChapters[story.arc%npcChapters.length],rows=chapter.lines[story.stage]||chapter.lines[0];
- const first=story.stage===0&&story.summary?`지난번에 ${story.summary}고 했지. ${rows[0]}`:rows[0];
- return rows.map((line,i)=>[i===1?'ai-mung':'ai-rabbit',i===0?first:line]);
-}
-async function aiNpcExchange(topic){
- if(!process.env.GEMINI_API_KEY||geminiSleeping())return null;
- const model=process.env.ZOO_AI_MODEL||'gemini-3.8-flash';
- const story=npcLife.story,chapter=npcChapters[story.arc%npcChapters.length];
- const prompt=`주카페의 NPC 두 명이 플레이어와 무관하게 서로 짧게 대화한다. 멍사자는 따뜻하고 느긋한 카페지기, 쥐무는토끼는 조용한 작가다. 현재 이야기: ${chapter.title}, 다음 단계 ${story.stage+1}/6. 지난 이야기의 결론: ${story.summary||'없음'}. 오래 기억하는 일: ${story.memories.slice(-5).join(' / ')||'없음'}. 최근 대화: ${npcLife.history.slice(-9).map(e=>NPCS[e.npcId].name+': '+e.text).join(' / ')}. 첫 대사는 직전 대사의 구체적 내용에 반응하고, 서로 답하면서 한 장면을 앞으로 진행해라. 매번 다시 인사하거나 이미 끝낸 원고를 처음부터 시작하지 마라. NPC의 변화와 배움을 자연스럽게 드러내라. 한국어 JSON 배열만 출력. 정확히 세 항목, 각 항목은 {"npcId":"ai-mung 또는 ai-rabbit","text":"60자 이내 대사"}. 번갈아 말하고 서로의 말에 답해야 한다.`;
- try{
-  const r=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`,{method:'POST',signal:AbortSignal.timeout(5500),headers:{'Content-Type':'application/json','x-goog-api-key':process.env.GEMINI_API_KEY},body:JSON.stringify({contents:[{role:'user',parts:[{text:prompt}]}],generationConfig:{maxOutputTokens:230,responseMimeType:'application/json'}})});
-  if(r.status===429){sleepGemini('429 quota/rate limit');return null}if(!r.ok)return null;
-  const data=await r.json(),raw=(data.candidates?.[0]?.content?.parts||[]).map(p=>p.text||'').join('');
-  const turns=JSON.parse(raw);if(!Array.isArray(turns)||turns.length!==3)return null;
-  if(!turns.every((v,i)=>NPCS[v.npcId]&&typeof v.text==='string'&&v.text.trim().length>0&&v.text.length<=100&&(i===0||v.npcId!==turns[i-1].npcId)))return null;
-  const recent=new Set(npcLife.history.slice(-24).map(e=>e.text.replace(/\s/g,'')));
-  if(turns.some(v=>recent.has(v.text.trim().replace(/\s/g,''))))return null;
-  return turns.map(v=>[v.npcId,v.text.trim().slice(0,100)]);
- }catch(e){console.warn('Autonomous NPC fallback:',e.message);return null}
-}
-let npcLifeBusy=false;
-async function tickNpcLife(){
- if(npcLifeBusy||roomClients('cafe').length===0)return;npcLifeBusy=true;
- try{
-  const chapter=npcChapters[npcLife.story.arc%npcChapters.length];
-  const topic=chapter.title;
-  let lines=await aiNpcExchange(topic);
-  if(!lines)lines=storyNpcExchange();
-  npcLife.turn++;npcLife.topic=topic;
-  for(let i=0;i<lines.length;i++){
-   const [npcId,text]=lines[i],a=npcLife.actors[npcId];
-   a.lastAction=i===0?'이야기 꺼내기':'서로 대화';a.xp++;a.level=Math.min(20,1+Math.floor(a.xp/20));
-   a.energy=Math.max(20,Math.min(100,a.energy+(npcId==='ai-rabbit'?-1:1)));
-   a.mood=Math.min(100,a.mood+1);a.relationship=Math.min(100,a.relationship+1);
-   const event={npcId,text,topic,chapter:npcLife.story.stage+1,action:a.lastAction,at:Date.now()+i*4300,turn:npcLife.turn,step:i};
-   npcLife.history.push(event);
-   broadcastRoom('cafe',{type:'npc_autonomous_turn',event,actors:npcLife.actors});
-  }
-  npcLife.history=npcLife.history.slice(-30);
-  npcLife.story.stage++;
-  if(npcLife.story.stage>=chapter.lines.length){
-   npcLife.story.summary=chapter.memory;
-   if(!npcLife.story.memories.includes(chapter.memory))npcLife.story.memories.push(chapter.memory);
-   npcLife.story.memories=npcLife.story.memories.slice(-16);
-   npcLife.story.arc++;npcLife.story.stage=0;
-   for(const a of Object.values(npcLife.actors)){a.xp+=2;a.level=Math.min(20,1+Math.floor(a.xp/20));a.relationship=Math.min(100,a.relationship+2)}
-  }
-  saveNpcLife();
- }finally{npcLifeBusy=false}
-}
-setInterval(()=>tickNpcLife().catch(e=>console.warn('NPC life tick',e.message)),NPC_LIFE_MS).unref?.();
-
-
 
 wss.on('connection',ws=>{
   const c={authed:false,user:null,mode:'world',x:1430,y:980,dir:'down',frame:2,moving:false,geo:null}; clients.set(ws,c);
@@ -438,9 +510,13 @@ wss.on('connection',ws=>{
     if(!c.authed){
       if(m.type!=='auth'||typeof m.token!=='string')return ws.close(1008,'auth required');
       const userId=sessions.get(m.token), user=loadUsers().find(u=>u.id===userId); if(!user)return ws.close(1008,'invalid session');
-      c.authed=true;c.user=safeUser(user);wsSend(ws,{type:'ready',user:c.user,serverVersion:'55.5.1'});syncRoom(c.mode);return;
+      c.authed=true;c.user=safeUser(user);wsSend(ws,{type:'ready',user:c.user,serverVersion:'55.9.0'});syncRoom(c.mode);return;
     }
-    if(m.type==='state'){
+    if(m.type==='cafe_scene_request'){
+      if(c.mode==='cafe'){
+        wsSend(ws,{type:'cafe_scene',sceneId:cafeSceneId,weights:[25,25,25,25]});
+      }
+    } else if(m.type==='state'){
       const old=c.mode, next=validModes.has(m.mode)?m.mode:c.mode;
       const cafeWasEmpty=old!=='cafe'&&next==='cafe'&&roomClients('cafe').length===0;
       c.mode=next;
@@ -448,7 +524,6 @@ wss.on('connection',ws=>{
         if(cafeWasEmpty)chooseCafeScene();
         wsSend(ws,{type:'cafe_scene',sceneId:cafeSceneId,weights:[25,25,25,25]});
         wsSend(ws,{type:'cafe_event',event:publicCafeEvent()});
-        wsSend(ws,{type:'npc_autonomous_state',life:npcLife});
         // Entry does not trigger an unsolicited NPC line.
       }
       const maxX=next==='world'?2880:960,maxY=next==='world'?1800:540;
@@ -457,16 +532,16 @@ wss.on('connection',ws=>{
       if(old!==next){syncRoom(old);syncRoom(next)}
       else broadcastRoom(c.mode,{type:'state',player:publicPlayer(c)},ws);
     } else if(m.type==='npc_chat'){
-      const text=String(m.text||'').trim().slice(0,300),npcId=NPCS[m.npcId]?m.npcId:'ai-mung';
+      const text=String(m.text||'').trim().slice(0,300),npcId=c.mode==='cafe'&&CAFE_SCENE_CAST[cafeSceneId].includes(m.npcId)?m.npcId:'ai-mung';
       if(!text)return;
       // v52.7: NPC conversations are room events. Everyone in the same room sees the NPC think and answer.
       // Personal memory/growth is still calculated only from the user who actually spoke to the NPC.
       broadcastRoom(c.mode,{type:'npc_thinking',npcId,byUserId:c.user.id,byNickname:c.user.nickname,at:Date.now()});
       npcThink(c.user,npcId,text).then(result=>{
-        broadcastRoom(c.mode,{type:'npc_reply',npcId,text:result.reply,memorySaved:!!result.memory,knowledgeSaved:!!result.knowledgeSaved,ai:result.ai,provider:result.provider||'fallback',model:result.model||null,byUserId:c.user.id,byNickname:c.user.nickname,at:Date.now()});
+        broadcastRoom(c.mode,{type:'npc_reply',npcId,npcName:NPCS[npcId].name,icon:NPCS[npcId].icon||'',sceneId:cafeSceneId,text:result.reply,memorySaved:!!result.memory,knowledgeSaved:!!result.knowledgeSaved,ai:result.ai,provider:result.provider||'fallback',model:result.model||null,byUserId:c.user.id,byNickname:c.user.nickname,at:Date.now()});
       }).catch(err=>{
         console.warn('npcThink unhandled',err?.message||err);
-        broadcastRoom(c.mode,{type:'npc_reply',npcId,text:localNpcReply(c.user,npcId,text),memorySaved:false,ai:false,provider:'fallback',model:null,byUserId:c.user.id,byNickname:c.user.nickname,at:Date.now()});
+        broadcastRoom(c.mode,{type:'npc_reply',npcId,npcName:NPCS[npcId].name,icon:NPCS[npcId].icon||'',sceneId:cafeSceneId,text:localNpcReply(c.user,npcId,text),memorySaved:false,ai:false,provider:'fallback',model:null,byUserId:c.user.id,byNickname:c.user.nickname,at:Date.now()});
       });
       } else if(m.type==='chat'){
       const text=clean(m.text).slice(0,120);if(!text)return;

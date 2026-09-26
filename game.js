@@ -597,9 +597,9 @@ function drawWorld(){
    Adds three distinct exterior buildings and blank multiplayer rooms.
    ================================================================ */
 const extraBuildings=[
-  {id:'bookshop',name:'숲속 책방',x:690,y:1120,w:300,h:210,door:{x:824,y:1270,w:34,h:54},accent:'#7e4f39',roof:'#4f3b35',wall:'#e4c98f'},
-  {id:'workshop',name:'공방',x:1880,y:1080,w:320,h:220,door:{x:2023,y:1238,w:34,h:56},accent:'#5f7450',roof:'#49604a',wall:'#d9c89a'},
-  {id:'lodge',name:'동물회관',x:2310,y:1260,w:350,h:235,door:{x:2468,y:1435,w:36,h:58},accent:'#8a5d3f',roof:'#694536',wall:'#e2c48e'}
+  {id:'bookshop',name:'애니 이야기관',x:690,y:1120,w:300,h:210,door:{x:824,y:1270,w:34,h:54},accent:'#7e4f39',roof:'#4f3b35',wall:'#e4c98f'},
+  {id:'workshop',name:'게임 길드',x:1880,y:1080,w:320,h:220,door:{x:2023,y:1238,w:34,h:56},accent:'#5f7450',roof:'#49604a',wall:'#d9c89a'},
+  {id:'lodge',name:'생활 정보관',x:2310,y:1260,w:350,h:235,door:{x:2468,y:1435,w:36,h:58},accent:'#8a5d3f',roof:'#694536',wall:'#e2c48e'}
 ];
 for(const b of extraBuildings)worldSolids.push({x:b.x,y:b.y,w:b.w,h:b.h-48});
 function drawExtraBuilding(b,kind){
@@ -636,6 +636,11 @@ function nearestEntrance(){
   for(const b of all){const d=Math.hypot(player.x-(b.door.x+b.door.w/2),player.y-(b.door.y+b.door.h));if(d<dist){dist=d;best=b}}
   return dist<92?best:null;
 }
+window.ZooCafeEnterTopic=function(topic){
+  if(!['bookshop','workshop','lodge'].includes(topic)||!window.ZOO_USER)return false;
+  mode=topic;syncBgm();cafePlayer={x:480,y:455,dir:'up',frame:2,t:0,moving:false};cooldown=.3;
+  window.ZooCafeNet?.tick(true);return true;
+};
 nearCafe=function(){return !!nearestEntrance();};
 enter=function(){
   if(mode!=='world'||cooldown>0)return;const b=nearestEntrance();if(!b)return;
@@ -654,7 +659,7 @@ function drawBlankInterior(room){
   R(50,48,860,118,'#d8bd8b','#684735',5);RR(315,72,330,62,5,'#f2d99f','#5b3d30',5);T(b?.name||'건물',480,103,28,'#4a3329','center',900);
   for(const x of [105,750]){R(x,78,105,75,'#523a30','#3d2b25',5);R(x+8,86,89,59,'#9bc1b5');R(x+50,86,5,59,'#4b392f');R(x+8,113,89,5,'#4b392f')}
   R(430,448,100,72,accent,'#493229',6);R(446,460,68,38,'#9bc1b5');T('E  나가기',480,505,15,'#fff4d7','center',900);
-  T('아직 비어 있는 공간입니다 · 다음 단계에서 꾸밀 수 있어요',480,188,13,'#7a5a45','center',700);
+  T('이 건물의 친구들과 채팅하거나 질문을 남겨 보세요',480,188,13,'#7a5a45','center',700);
 }
 const moveIndoor=moveCafe;
 moveCafe=function(){moveIndoor();};
@@ -1544,41 +1549,6 @@ z541DrawNpcBubble=function(n){
   z5414PreviousNpcBubble(n);
 };
 
-/* v55.1: server-synchronized conversations over the original living cafe video. */
-(function(){
- let lastTurn=0,lastStep=-1,latestState=null;
- const timers=new Set();
- const growthLabel=document.querySelector('.cafe-dialogue-head span');
- function showGrowth(actors,chapter){
-  if(!growthLabel||!actors)return;
-  const mung=actors['ai-mung']?.level||1,rabbit=actors['ai-rabbit']?.level||1;
-  growthLabel.textContent=`☕ 카페의 대화 · 멍사자 Lv.${mung} · 토끼 Lv.${rabbit}${chapter?' · 이야기 '+chapter+'/6':''}`;
- }
- function clear(){for(const t of timers)clearTimeout(t);timers.clear()}
- function show(event){
-  if(mode!=='cafe')return;
-  const npc=aiFriends.find(n=>n.id===event.npcId);if(!npc)return;
-  aiSay(npc,event.text,4200);
- }
- function turn(event,actors){
-  if(!event||!Number.isFinite(event.at))return;
-  if(event.turn<lastTurn||(event.turn===lastTurn&&event.step<=lastStep))return;
-  lastTurn=event.turn;lastStep=event.step;latestState=actors||latestState;showGrowth(latestState,event.chapter);
-  const delay=Math.max(0,Math.min(15000,event.at-Date.now()));
-  const t=setTimeout(()=>{timers.delete(t);show(event)},delay);timers.add(t);
- }
- function state(life){
-  if(!life)return;latestState=life.actors;showGrowth(latestState,life.story?.stage?life.story.stage:undefined);
-  // New arrivals hear the current exchange once, without replaying old conversations.
-  const current=(life.history||[]).filter(e=>e.turn===life.turn&&e.at>Date.now()-6000);
-  for(const e of current)turn(e,life.actors);
- }
- window.ZooCafeAI.receiveAutonomousTurn=turn;
- window.ZooCafeAI.receiveAutonomousState=state;
- window.ZooCafeAI.autonomousState=()=>latestState;
- window.addEventListener('beforeunload',clear);
-})();
-
 /* v55.2: one stable lower dialogue dock; nothing is anchored to painted faces. */
 (function(){
  const dock=document.getElementById('cafeDialogueDock');
@@ -1591,16 +1561,22 @@ z541DrawNpcBubble=function(n){
  const toggle=document.getElementById('cafeDialogueHistoryToggle');
  const participate=document.getElementById('cafeDialogueParticipate');
  const entries=[];
+ const guestIcons={'솔이':'🦊','밤톨':'🦔','모카':'🐈','다온':'🐻','루미':'🦌','서책':'🦉','그루':'🐈‍⬛'};
+ function portrait(name,element,small=false){
+  const character=name==='멍사자'?'mung':name==='쥐무는토끼'?'rabbit':guestIcons[name]?'guest':'player';
+  element.className=(small?'cafe-dialogue-mini ':'cafe-dialogue-avatar ')+character;
+  element.textContent=character==='guest'?guestIcons[name]:'';
+  return character;
+ }
  window.showCafeDialogue=function(name,text){
   if(!dock||!text||mode!=='cafe')return;
   speaker.textContent=String(name||'카페');line.textContent=String(text).slice(0,260);
-  const character=name==='멍사자'?'mung':name==='쥐무는토끼'?'rabbit':'player';
-  avatar.className='cafe-dialogue-avatar '+character;
+  const character=portrait(name,avatar);
   dots.hidden=character==='player';clearTimeout(speakingTimer);
   if(character!=='player')speakingTimer=setTimeout(()=>dots.hidden=true,3200);
   entries.push({name:String(name||'카페'),text:String(text).slice(0,260)});
   if(entries.length>30)entries.shift();
-  history.replaceChildren(...entries.map(e=>{const row=document.createElement('div');const face=document.createElement('span');face.className='cafe-dialogue-mini '+(e.name==='멍사자'?'mung':e.name==='쥐무는토끼'?'rabbit':'player');const b=document.createElement('b');b.textContent=e.name+'  ';row.append(face,b,document.createTextNode(e.text));return row}));
+  history.replaceChildren(...entries.map(e=>{const row=document.createElement('div');const face=document.createElement('span');portrait(e.name,face,true);const b=document.createElement('b');b.textContent=e.name+'  ';row.append(face,b,document.createTextNode(e.text));return row}));
   history.scrollTop=history.scrollHeight;
  };
  toggle?.addEventListener('click',()=>{history.hidden=!history.hidden;toggle.setAttribute('aria-expanded',String(!history.hidden))});
