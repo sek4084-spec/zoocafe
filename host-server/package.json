@@ -1,0 +1,14 @@
+{
+  "name": "zoocafe-online",
+  "version": "55.9.5",
+  "private": true,
+  "description": "ZOO:CAFE real-time multiplayer prototype",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "4.21.2",
+    "ws": "8.18.3",
+    "pg": "8.13.1"
+  }
+}
